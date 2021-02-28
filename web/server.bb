@@ -10,6 +10,10 @@
 (def locations
   (json/parse-string (slurp "locations.json") true))
 
+(def supported-languages
+  {:en "English"
+   :es "Español"})
+
 (def copy
   {"New York State COVID-19 Vaccine Availability Notifications"
    {:es "Notificaciones de disponibilidad de la vacuna COVID-19 del estado de Nueva York"}
@@ -45,6 +49,14 @@
       [:body
         [:header
           [:h1 title]]
+       
+        [:form {:method :GET, :action "/"}
+         [:select
+          {:name :lang, :onchange "this.form.submit()"}
+          (for [[lang-code lang-name] supported-languages]
+            [:option (merge {:value lang-code}
+                            (when (= lang-code lang) {:selected true}))
+             lang-name])]]
       
         [:form {:method :POST, :action "TBD"}
         [:h3 (translate "Check the locations about which you’d like to be notified" lang)]
@@ -77,9 +89,12 @@
 
 (defn which-lang
   [req]
-  (let [lang-header (get-in req [:headers "accept-lang"] "")
-        first-lang (first (str/split lang-header #",|-"))]
-    (if (= first-lang "es")
+  (let [lang-header (some-> (get-in req [:headers "accept-lang"])
+                            (str/split #",|-")
+                            (first))
+        qs          (get req :query-string "")]
+    (if (or (= lang-header "es")
+            (str/includes? (or qs "") "lang=es"))
       :es
       :en)))
 
