@@ -34,21 +34,47 @@
    {:es "con datos de"}
    
    "Receive Notifications via Email"
-   {:es "Recibir notificaciones por correo electrónico"}})
+   {:es "Recibir notificaciones por correo electrónico"}
+   
+   "Subscription Request Received"
+   {:es "Solicitud de suscripción recibida"}
+
+   "We have received your request to subscribe to appointment availability changes for the selected locations."
+   {:es "Hemos recibido su solicitud para suscribirse a los cambios de disponibilidad de citas para las ubicaciones seleccionadas."}
+
+   "If all goes well, you will receive a confirmation via email shortly."
+   {:es "Si todo va bien, recibirá una confirmación por correo electrónico en breve."}
+
+   "Once you click the link in that email, you’ll be subscribed."
+   {:es "Una vez que haga clic en el enlace de ese correo electrónico, estará suscrito."}
+
+   "Good luck!"
+   {:es "¡Buena suerte!"}})
 
 (defn translate
   [phrase lang]
   (if (= lang :en)
-    phrase
+    (do
+      (when-not (contains? copy phrase)
+        (println "WARNING: phrase not found in copy map:" phrase))
+      phrase)
     (if-let [trans (get-in copy [phrase lang])]
       trans
       (do
         (println "WARNING: missing translation" lang "for" phrase)
         phrase))))
 
-(defn homepage
+(defn translator
+  "Returns a function that will accept a phrase and return its translation in the given lang, if
+   any."
   [lang]
-  (let [title (translate "New York State COVID-19 Vaccine Availability Notifications" lang)]
+  (fn [phrase] (translate phrase lang)))
+
+(defn home-page
+  [lang]
+  ;; TODO: add client-side form validation, once we’ve tested server-side validation
+  (let [t     (translator lang)
+        title (t "New York State COVID-19 Vaccine Availability Notifications")]
     (hiccup/html
     "<!DOCTYPE html>\n"
     [:html
@@ -67,9 +93,9 @@
                             (when (= lang-code lang) {:selected true}))
              lang-name])]]
       
-        [:form {:method :POST, :action "TBD"}
-        [:h3 (translate "Check the locations about which you’d like to be notified" lang)]
-        [:p "** " (translate "Indicates locations for which eligibility is restricted by residency" lang)]
+        [:form {:method :POST, :action "/subscribe"}
+        [:h3 (t "Check the locations about which you’d like to be notified")]
+        [:p "** " (t "Indicates locations for which eligibility is restricted by residency")]
         
         (for [{:keys [providerName address]} (:providerList locations)]
           [:div
@@ -97,6 +123,32 @@
           [:a {:href "https://am-i-eligible.covid19vaccine.health.ny.gov"}
            "https://am-i-eligible.covid19vaccine.health.ny.gov"]]]]]])))
 
+(defn subscribe
+  [req lang]
+  ;; TODO: enqueue a subscription request in the DB (or elsewhere)
+  {:status 303
+   :headers {"Location" (str "/received" (when (not= lang :en)
+                                           (str "?lang=" (name lang))))}})
+
+(defn received-page
+  [lang]
+  (let [t     (translator lang)
+        title (t "New York State COVID-19 Vaccine Availability Notifications")]
+    (hiccup/html
+    "<!DOCTYPE html>\n"
+    [:html
+      [:head
+        [:meta {:charset "UTF-8"}]
+        [:title title]]
+      [:body
+        [:header
+          [:h1 title]]
+        [:h2 (t "Subscription Request Received")]
+        [:p (t "We have received your request to subscribe to appointment availability changes for the selected locations.")]
+        [:p (t "If all goes well, you will receive a confirmation via email shortly.")]
+        [:p (t "Once you click the link in that email, you’ll be subscribed.")]
+        [:p [:b (t "Good luck!")]]]])))
+
 (defn which-lang
   [req]
   (let [lang-header (some-> (get-in req [:headers "accept-lang"])
@@ -108,19 +160,39 @@
       :es
       :en)))
 
-(def routes
-  {"/" homepage})
-
-(defn app [req]
-  (if-let [handler (get routes (:uri req))]
+(defn handle-get
+  [req page-fn]
+  (if (not= (:request-method req) :get)
+    {:status 405, :body "Method not allowed"}
     (let [lang (which-lang req)]
       {:status  200
        :headers {"Content-Type" "text/html", "Content-Language" lang}
-       :body    (handler lang)})
-    (do
-      (println "WARNING: no handler found for path" (:uri req))
-      {:status 404
-       :body "Not found"})))
+       :body    (page-fn lang)})))
+
+(defn handle-post
+  [req handler-fn]
+  (if (not= (:request-method req) :post)
+    {:status 405, :body "Method not allowed"}
+    (let [lang (which-lang req)
+          response (handler-fn req lang)]
+      (assoc-in response "Content-Language" lang))))
+
+(defn handle-not-found
+  [req log?]
+  (when log?
+    (println "WARNING: no handler found for path" (:uri req)))
+  {:status 404, :body "Not Found"})
+
+(def routes
+  {"/"            (fn [req] (handle-get req (memoize home-page)))
+   "/subscribe"   (fn [req] (handle-post req subscribe))
+   "/received"    (fn [req] (handle-get req (memoize received-page)))
+   "/favicon.ico" (fn [req] (handle-not-found req false))})
+
+(defn app [req]
+  (if-let [handler (get routes (:uri req))]
+    (handler req)
+    (handle-not-found req true)))
 
 (def port 8080)
 
