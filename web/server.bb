@@ -108,11 +108,19 @@
       :es
       :en)))
 
+(def routes
+  {"/" homepage})
+
 (defn app [req]
-  (let [lang (which-lang req)]
-    {:status  200
-    :headers {"Content-Type" "text/html", "Content-Language" lang}
-    :body    (homepage lang)}))
+  (if-let [handler (get routes (:uri req))]
+    (let [lang (which-lang req)]
+      {:status  200
+       :headers {"Content-Type" "text/html", "Content-Language" lang}
+       :body    (handler lang)})
+    (do
+      (println "WARNING: no handler found for path" (:uri req))
+      {:status 404
+       :body "Not found"})))
 
 (def port 8080)
 
