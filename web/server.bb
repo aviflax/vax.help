@@ -31,11 +31,20 @@
    {:es "Sitio creado por"}
 
    "with data from"
-   {:es "con datos de"}})
+   {:es "con datos de"}
+   
+   "Receive Notifications via Email"
+   {:es "Recibir notificaciones por correo electrónico"}})
 
 (defn translate
   [phrase lang]
-  (get-in copy [phrase lang] phrase))
+  (if (= lang :en)
+    phrase
+    (if-let [trans (get-in copy [phrase lang])]
+      trans
+      (do
+        (println "WARNING: missing translation" lang "for" phrase)
+        phrase))))
 
 (defn homepage
   [lang]
