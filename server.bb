@@ -9,15 +9,35 @@
 (def locations
   (json/parse-string (slurp "locations.json") true))
 
+(def page-title "New York State COVID-19 Vaccine Availability Notifications")
+
 (def homepage
   (hiccup/html
+   "<!DOCTYPE html>\n"
    [:html
     [:head
-        [:title "vaxavailability.help"]]
+      [:meta {:charset "UTF-8"}]
+      [:title page-title]]
     [:body
-        [:h1 "vaxavailability.help"]
-        (for [{:keys [providerName address]} (:providerList locations)]
-          [:div [:label providerName " (" address ")"]])]]))
+      [:h1 page-title]
+     
+      [:form {:method :POST, :action "TBD"}
+       [:h3 "Check the locations about which you’d like to be notified"]
+       [:p "** Indicates locations for which eligibility is restricted by residency"]
+       
+       (for [{:keys [providerName address]} (:providerList locations)]
+         [:div
+          [:label
+           [:input {:type :checkbox, :name :locations, :value providerName}]
+           " "
+           providerName " (" address ")"]])
+       
+       [:label
+        [:h3 "Enter the email address at which you’d like to be notified when the checked locations have new availability"]
+        [:input {:type :email, :name :email}]]
+       
+       [:div
+        [:input {:type :submit}]]]]]))
 
 (defn app [req]
   {:status  200
