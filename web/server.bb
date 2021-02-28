@@ -74,7 +74,8 @@
           [:input {:type :email, :name :email}]]
         
         [:div
-          [:input {:type :submit}]]
+          [:input {:type :submit
+                   :value (translate "Receive Notifications via Email" lang)}]]
          
         [:footer
          [:p
