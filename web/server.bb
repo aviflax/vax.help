@@ -187,6 +187,7 @@
 
 (def routes
   {"/"            (fn [req] (handle-get req (memoize home-page)))
+   "/healthz"     (constantly {:status 200, :body "OK"})
    "/subscribe"   (fn [req] (handle-post req subscribe))
    "/received"    (fn [req] (handle-get req (memoize received-page)))
    "/favicon.ico" (fn [req] (handle-not-found req false))})
