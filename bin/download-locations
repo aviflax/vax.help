@@ -1,0 +1,3 @@
+#!/bin/sh
+
+curl -s https://am-i-eligible.covid19vaccine.health.ny.gov/api/list-providers -o locations.json
