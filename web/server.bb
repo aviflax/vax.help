@@ -93,7 +93,9 @@
                             (when (= lang-code lang) {:selected true}))
              lang-name])]]
       
-        [:form {:method :POST, :action "/subscribe"}
+        [:form {:method :POST
+                :action (str "/subscribe" (when (not= lang :en)
+                                            (str "?lang=" (name lang))))}
         [:h3 (t "Check the locations about which you’d like to be notified")]
         [:p "** " (t "Indicates locations for which eligibility is restricted by residency")]
         
