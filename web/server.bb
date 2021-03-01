@@ -1,11 +1,64 @@
 #!/usr/bin/env bb
 
 (ns script
-  (:require [cheshire.core :as json]
+  (:require [babashka.pods :as pods]
+            [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [hiccup.core :as hiccup]
             [org.httpkit.server :as srv]))
+
+(pods/load-pod 'org.babashka/postgresql "0.0.1")
+
+(require '[pod.babashka.postgresql :as pg])
+
+(defn env!
+  "Throws if a the environment variable is missing or blank."
+  [vn]
+  (let [vv (System/getenv vn)]
+    (if (or (not vv)
+            (str/blank? vv))
+      (throw (RuntimeException. (format "Required environment variable %s not found." vn)))
+      vv)))
+
+(defn build-config!
+  "Throws if a required environment variable is missing or blank."
+  []
+  {:db {:name     (env! "DB_NAME")
+        :host     (env! "DB_HOST")
+        :port     (env! "DB_PORT")
+        :username (env! "DB_USERNAME")
+        :password (env! "DB_PASSWORD")}})
+
+(def config (build-config!))
+
+(defn cv
+  [first-key & more-keys]
+  (get-in config (cons first-key more-keys)))
+
+(def dbconn (atom nil))
+
+;; TODO: this is basically a hacky, crappy DB connection pool. So let’s use a real pooling library
+;; that’ll handle auto-reconnects and other aspects of connection management for us, properly.
+(defn ensure-dbconn!
+  "Ensures we have a working and active DB connection. We probably only want to invoke this if/when
+   we get a PSQLException when trying to do something meaningful. Meaning we especially don’t want
+   to invoke this for every page load."
+  []  
+  (try
+    (pg/execute! @dbconn ["select version()"])
+    (catch Exception e
+      (swap! dbconn (fn [cur-conn]
+                      (try
+                        (pg/execute! cur-conn ["select version()"])
+                        cur-conn
+                        (catch Exception e
+                          (pg/get-connection {:dbtype   "postgresql"
+                                              :host     (cv :db :host)
+                                              :dbname   (cv :db :name)
+                                              :user     (cv :db :username)
+                                              :password (cv :db :password)
+                                              :port     (cv :db :port)}))))))))
 
 (def locations
   (json/parse-string (slurp "locations.json") true))

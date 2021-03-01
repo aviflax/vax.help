@@ -1,0 +1,76 @@
+create type us_state as enum(
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
+  'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY',
+  'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
+  'WI', 'WY', 'DC', 'AS', 'GU', 'MP', 'PR', 'UM', 'VI');
+
+create table if not exists locations (
+  id        serial primary key,
+  us_state  us_state not null,
+  note      text null,
+);
+
+create table if not exists location_names (
+  id    integer references locations,
+  ts    timestamp with time zone not null default now(),
+  name  varchar(1000) not null,
+  note  text null,
+  primary key (id, name),
+);
+
+create index if not exists location_names_location on location_names (id);
+create index if not exists location_names_name on location_names (name);
+
+create view if not exists locations_with_current_name as
+select l.*, ln.name, ln.ts as 'name_ts'
+from locations l,
+FINISH;
+
+create table if not exists subscription_requests (
+  id             serial primary key,
+  ts             timestamp with time zone not null default now(),
+  email          varchar(500) not null unique,
+  language       varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'), -- if null, we default to en
+  location_names varchar(500)[],
+);
+
+comment on table subscription_requests 'When we get a request for a subcription, we throw it in'
+                                       ' this simplistic table as fast as possible, just in case'
+                                       ' the load on the DB would be too great for doing all the'
+                                       ' various inserts etc that’d be needed to properly add the'
+                                       ' subscription to the subscriptions table, which entails'
+                                       ' checking constraints, updating indices, etc.';
+
+create table if not exists subscriptions (
+  id         serial primary key,
+  email      varchar(500) not null unique,
+  language   varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'), -- if null, we default to en
+  nonce      varchar(200) not null,
+);
+
+create unique index if not exists subs_unique_lower_email_idx on subscriptions (lower(email));
+
+create type subscription_state as enum ('unverified+inactive', 'verified+active', 'canceled');
+
+create table if not exists subscription_state_changes (
+  id    integer references subscriptions,
+  ts    timestamp with time zone not null default now(),
+  state subscription_state not null,
+  note  text null,
+);
+
+create index if not exists sub_states on subscription_state_changes (id);
+
+create view if not exists subscriptions_with_current_state as
+select s.*, ssc.state, ssc.ts as 'state_ts'
+from subscriptions s,
+FINISH;
+
+create table if not exists subscriptions_locations (
+  subscription_id integer references subscriptions,
+  location_id     integer references locations,
+  primary key (subscription_id, location_id)
+);
+
+create index if not exists subscriptions_locations_subscription_id on subscriptions_locations (subscription_id);
+create index if not exists subscriptions_locations_location_id on subscriptions_locations (location_id);
