@@ -32,8 +32,20 @@
 
 (def config (build-config!))
 
+(defn cv
+  [first-key & more-keys]
+  (get-in config (cons first-key more-keys)))
+
+(def dbspec
+  {:dbtype   "postgresql"
+   :host     (cv :db :host)
+   :dbname   (cv :db :name)
+   :user     (cv :db :username)
+   :password (cv :db :password)
+   :port     (cv :db :port)})
+
 (def init-db
   [script]
-  :TODO)
+  (pg/execute! db [script]))
 
 (init-db (slurp "db/init.sql"))

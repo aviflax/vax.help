@@ -1,1 +1,1 @@
-# vaxavailability.help
+# availability.help
