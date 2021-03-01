@@ -6,7 +6,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [hiccup.core :as hiccup]
-            [org.httpkit.server :as srv]))
+            [org.httpkit.server :as srv])
+  (:import [java.net URLEncoder URLDecoder]))
 
 (pods/load-pod 'org.babashka/postgresql "0.0.1")
 
@@ -40,13 +41,13 @@
 
 ;; TODO: this is basically a hacky, crappy DB connection pool. So let’s use a real pooling library
 ;; that’ll handle auto-reconnects and other aspects of connection management for us, properly.
-(defn ensure-dbconn!
+(defn ensure-dbconn
   "Ensures we have a working and active DB connection. We probably only want to invoke this if/when
    we get a PSQLException when trying to do something meaningful. Meaning we especially don’t want
    to invoke this for every page load."
   []  
   (try
-    (pg/execute! @dbconn ["select version()"])
+    (pg/execute! @dbconn "select version()")
     (catch Exception e
       (swap! dbconn (fn [cur-conn]
                       (try
@@ -190,12 +191,70 @@
           [:a {:href "https://am-i-eligible.covid19vaccine.health.ny.gov"}
            "https://am-i-eligible.covid19vaccine.health.ny.gov"]]]]]])))
 
+;; copied from https://github.com/ring-clojure/ring-codec/blob/master/src/ring/util/codec.clj
+(defn assoc-conj
+  "Associate a key with a value in a map. If the key already exists in the map,
+  a vector of values is associated with the key."
+  [map key val]
+  (assoc map key
+         (if-let [cur (get map key)]
+           (if (vector? cur)
+             (conj cur val)
+             [cur val])
+           val)))
+
+;; copied from https://github.com/ring-clojure/ring-codec/blob/master/src/ring/util/codec.clj
+(defn- form-decode-str
+  "Decode the supplied www-form-urlencoded string using the specified encoding,
+  or UTF-8 by default."
+  ([encoded]
+   (form-decode-str encoded "UTF-8"))
+  ([^String encoded ^String encoding]
+   (try
+     (URLDecoder/decode encoded encoding)
+     (catch Exception _ nil))))
+
+;; copied from https://github.com/ring-clojure/ring-codec/blob/master/src/ring/util/codec.clj
+(defn- form-decode
+  "Decode the supplied www-form-urlencoded string using the specified encoding,
+  or UTF-8 by default. If the encoded value is a string, a string is returned.
+  If the encoded value is a map of parameters, a map is returned."
+  ([encoded]
+   (form-decode encoded "UTF-8"))
+  ([^String encoded encoding]
+   (if-not (.contains encoded "=")
+     (form-decode-str encoded encoding)
+     (reduce
+      (fn [m param]
+        (let [[k v] (str/split param #"=" 2)
+              k     (form-decode-str k encoding)
+              v     (form-decode-str (or v "") encoding)]
+          (if (and k v)
+            (assoc-conj m k v)
+            m)))
+      {}
+      (str/split encoded #"&")))))
+
 (defn subscribe
   [req lang]
   ;; TODO: enqueue a subscription request in the DB (or elsewhere)
+  (let [{locations "locations", email "email"} (form-decode (slurp (:body req)))]
+    (pg/execute! @dbconn
+                ["insert into subscription.requests (email, language, locations)
+                  values (?, ?, ?)"
+                 email
+                 (name lang)
+                 (into-array String locations)]))
   {:status 303
    :headers {"Location" (str "/received" (when (not= lang :en)
-                                           (str "?lang=" (name lang))))}})
+                                           (str "?lang=" (name lang))))}}
+  ;; {:status 200
+  ;;  :headers {"Content-Type" "text/plain"}
+  ;;  :body (let [req-form (form-decode (slurp (:body req)))]
+  ;;          (println req-form)
+  ;;          req-form
+  ;;          )}
+  )
 
 (defn received-page
   [lang]
@@ -266,6 +325,8 @@
 
 (println "Starting HTTP server listening on port" port)
 (srv/run-server app {:port port})
+
+(ensure-dbconn)
 
 ;; Prevent Babashka from exiting
 @(promise)
