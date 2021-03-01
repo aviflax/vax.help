@@ -44,8 +44,8 @@
    :password (cv :db :password)
    :port     (cv :db :port)})
 
-(def init-db
+(defn init-db
   [script]
-  (pg/execute! db [script]))
+  (pg/execute! dbspec [script]))
 
 (init-db (slurp "db/init.sql"))

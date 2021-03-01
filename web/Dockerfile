@@ -10,9 +10,8 @@ RUN bin/download-locations
 
 # Copy the code last so hopefully we can use the prior layers as cached
 COPY server.bb ./
+COPY db ./db/
 
 EXPOSE 8080
-
-# ENTRYPOINT [ "./server.bb" ]
 
 CMD [ "./server.bb" ]

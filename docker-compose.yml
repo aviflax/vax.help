@@ -7,15 +7,16 @@ services:
       POSTGRES_DB: test
       POSTGRES_USER: web
       POSTGRES_PASSWORD: 'F00B4r!'
+    ports: ['5432:5432']
   db_wait:
     image: dadarek/wait-for-dependencies
     depends_on: [db]
-    command: db:5432
+    command: 'db:5432'
   web:
     build: web/
     depends_on: [db_wait]
     environment:
-      DB_HOST: postgresql
+      DB_HOST: db
       DB_PORT: '5432'
       DB_NAME: test
       DB_USERNAME: web
