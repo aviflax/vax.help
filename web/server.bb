@@ -133,7 +133,17 @@
     [:html
       [:head
         [:meta {:charset "UTF-8"}]
-        [:title title]]
+        [:title title]
+        [:style
+         "html, body, select, option { font-size: large }
+          
+          #locations {
+            display: grid;
+            grid-template-columns: 1.25em 1fr;
+            gap: 1em 0;
+          }
+                    
+          .address { display: block; font-style: italic; }"]]
       [:body
         [:header
           [:h1 title]]
@@ -152,13 +162,15 @@
         [:h3 (t "Check the locations about which you’d like to be notified")]
         [:p "** " (t "Indicates locations for which eligibility is restricted by residency")]
         
-        (for [{:keys [providerName address]} (:providerList locations)]
-          [:div
-            [:label
-            [:input {:type :checkbox, :name :locations, :value providerName}]
-            " "
-            providerName " (" address ")"]])
-        
+        [:div#locations
+         (mapcat identity
+          (for [{:keys [providerName address]} (:providerList locations)
+                :let [id (str "location-" providerName)]]
+            [[:input {:type :checkbox, :name :locations, :value providerName, :id id}]
+              [:label {:for id}
+              [:span.providerName providerName]
+              [:span.address address]]]))]
+         
         [:label
           [:h3 (translate "Enter the email address at which you’d like to be notified when the checked locations have new availability" lang)]
           [:input {:type :email, :name :email}]]
@@ -221,7 +233,7 @@
     {:status 405, :body "Method not allowed"}
     (let [lang (which-lang req)]
       {:status  200
-       :headers {"Content-Type" "text/html", "Content-Language" lang}
+       :headers {"Content-Type" "text/html; charset=UTF-8", "Content-Language" lang}
        :body    (page-fn lang)})))
 
 (defn handle-post
