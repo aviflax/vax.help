@@ -59,6 +59,7 @@ create table subscription.subscriptions (
 );
 
 create unique index on subscription.subscriptions (lower(email));
+create index on subscription.subscriptions (request_id);
 
 create type subscription_state as enum ('unverified+inactive', 'verified+active', 'canceled');
 
