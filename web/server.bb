@@ -264,7 +264,9 @@
                         values (?, ?, ?)"
                 email
                 (name lang)
-                (str/join "|" locations)])
+                (if (string? locations)  ; if it’s parsed into a string, it’s probably a single location
+                  locations
+                  (str/join "|" locations))])
   {:status  303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}})
