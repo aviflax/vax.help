@@ -13,6 +13,15 @@
 
 (require '[pod.babashka.postgresql :as pg])
 
+(defn logger
+  [level]
+  (fn [& args] (apply println (cons (str level ":") args))))
+
+(def debug (logger "DEBUG"))
+(def info  (logger "INFO"))
+(def warn  (logger "WARN"))
+(def error (logger "ERROR"))
+
 (defn env!
   "Throws if a the environment variable is missing or blank."
   [vn]
@@ -110,12 +119,12 @@
   (if (= lang :en)
     (do
       (when-not (contains? copy phrase)
-        (println "WARNING: phrase not found in copy map:" phrase))
+        (warn "phrase not found in copy map:" phrase))
       phrase)
     (if-let [trans (get-in copy [phrase lang])]
       trans
       (do
-        (println "WARNING: missing translation" lang "for" phrase)
+        (warn "missing translation" lang "for" phrase)
         phrase))))
 
 (defn translator
@@ -307,7 +316,7 @@
 (defn handle-not-found
   [req log?]
   (when log?
-    (println "WARNING: no handler found for path" (:uri req)))
+    (warn "no handler found for path" (:uri req)))
   {:status 404, :body "Not Found"})
 
 (def routes
@@ -324,10 +333,11 @@
 
 (def port 8080)
 
-(println "Starting HTTP server listening on port" port)
-(srv/run-server app {:port port})
-
+(info "Connecting to the database...")
 (ensure-dbconn)
+
+(info "Starting HTTP server listening on port" port)
+(srv/run-server app {:port port})
 
 ;; Prevent Babashka from exiting
 @(promise)
