@@ -238,13 +238,14 @@
 (defn subscribe
   [req lang]
   ;; TODO: enqueue a subscription request in the DB (or elsewhere)
-  (let [{locations "locations", email "email"} (form-decode (slurp (:body req)))]
+  (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
+    (println "DEBUG: decoded form:" posted-form)
     (pg/execute! @dbconn
-                ["insert into subscription.requests (email, language, locations)
+                ["insert into subscription.requests (email, language, location_names)
                   values (?, ?, ?)"
                  email
                  (name lang)
-                 (into-array String locations)]))
+                 (str/join "|" locations)]))
   {:status 303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}}

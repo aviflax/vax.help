@@ -38,9 +38,9 @@ create schema subscription;
 create table subscription.requests (
   id              serial primary key,
   ts              timestamp with time zone not null default now(),
-  email           varchar(500) not null unique,
+  email           varchar(500) not null,
   language        varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'), -- if null, we default to en
-  location_names  varchar(500)[]
+  location_names  text not null
 );
 
 comment on table subscription.requests is 'When we get a request for a subcription, we throw it in'
