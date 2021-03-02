@@ -246,25 +246,25 @@
 
 (defn subscribe
   [req lang]
-  ;; TODO: enqueue a subscription request in the DB (or elsewhere)
-  (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
-    (println "DEBUG: decoded form:" posted-form)
-    (pg/execute! @dbconn
-                ["insert into subscription.requests (email, language, location_names)
-                  values (?, ?, ?)"
-                 email
-                 (name lang)
-                 (str/join "|" locations)]))
-  {:status 303
-   :headers {"Location" (str "/received" (when (not= lang :en)
-                                           (str "?lang=" (name lang))))}}
-  ;; {:status 200
-  ;;  :headers {"Content-Type" "text/plain"}
-  ;;  :body (let [req-form (form-decode (slurp (:body req)))]
-  ;;          (println req-form)
-  ;;          req-form
-  ;;          )}
-  )
+  (try
+    (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
+      (debug "decoded form:" posted-form)
+      (pg/execute! @dbconn
+                   ["insert into subscription.requests (email, language, location_names)
+                    values (?, ?, ?)"
+                   email
+                   (name lang)
+                   (str/join "|" locations)]))
+    {:status  303
+     :headers {"Location" (str "/received" (when (not= lang :en)
+                                            (str "?lang=" (name lang))))}}
+    (catch Exception e
+      (error e)
+      {:status  500
+       :headers {"Content-Type" "text/plain"}
+       :body    (str "500 Internal server error"
+                     "\n\nSorry, something went wrong. Please try again later."
+                     "\n\nIf you continue to see this message, please email me: avi@aviflax.com.")})))
 
 (defn received-page
   [lang]
