@@ -183,7 +183,7 @@
          
         [:label
           [:h3 (translate "Enter the email address at which you’d like to be notified when the checked locations have new availability" lang)]
-          [:input {:type :email, :name :email}]]
+          [:input {:type :email, :name :email, :required :required, :title "email address (required)"}]]
         
         [:div
           [:input {:type :submit
@@ -244,20 +244,36 @@
       {}
       (str/split encoded #"&")))))
 
+(defn validate-subscribe-request
+  "Returns an error response as a Ring response map, or nil."
+  [{locations "locations", email "email" :as posted-form}]
+  (when (or (not (seq locations))
+            (str/blank? email)) ; TODO: make this more robust. Maybe with a good old regex!
+    {:status  400
+     :headers {"Content-Type" "text/plain"}
+     :body    (str "400 Bad Request"
+                   "\n\nDid you check at least one location?"
+                   "\n\nPlease go back and try again.")}))
+
+(defn save-subscription-request
+  [{locations "locations", email "email" :as posted-form} lang]
+  (pg/execute! @dbconn
+               ["insert into subscription.requests (email, language, location_names)
+                        values (?, ?, ?)"
+                email
+                (name lang)
+                (str/join "|" locations)])
+  {:status  303
+   :headers {"Location" (str "/received" (when (not= lang :en)
+                                           (str "?lang=" (name lang))))}})
+
 (defn subscribe
   [req lang]
   (try
     (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
       (debug "decoded form:" posted-form)
-      (pg/execute! @dbconn
-                   ["insert into subscription.requests (email, language, location_names)
-                    values (?, ?, ?)"
-                   email
-                   (name lang)
-                   (str/join "|" locations)]))
-    {:status  303
-     :headers {"Location" (str "/received" (when (not= lang :en)
-                                            (str "?lang=" (name lang))))}}
+      (or (validate-subscribe-request posted-form)
+          (save-subscription-request posted-form lang)))
     (catch Exception e
       (error e)
       {:status  500
