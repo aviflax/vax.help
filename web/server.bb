@@ -145,7 +145,7 @@
         [:meta {:charset "UTF-8"}]
         [:title title]
         [:style
-         "html, body, select, option { font-size: large }
+         "html, body, select, option, input { font-family: Charter, Palatino; font-size: large; }
           
           #locations {
             display: grid;
@@ -153,7 +153,9 @@
             gap: 1em 0;
           }
                     
-          .address { display: block; font-style: italic; }"]]
+          .address { display: block; font-style: italic; }
+          
+          footer { margin-top: 10em; }"]]
       [:body
         [:header
           [:h1 title]]
