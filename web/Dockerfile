@@ -2,6 +2,8 @@ FROM babashka/babashka:0.2.10
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -yy -qq --no-install-recommends jq
+
 COPY bin ./bin/
 
 # Pre-download some libs and data
