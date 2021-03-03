@@ -17,26 +17,26 @@ create table location.locations (
 );
 
 create table location.names (
-  id    integer references location.locations not null,
-  name  varchar(1000) not null,
-  ts    timestamp with time zone not null default now(),
-  note  text null,
-  primary key (id, name)
+  location_id  integer references location.locations not null,
+  name         varchar(1000) not null,
+  ts           timestamp with time zone not null default now(),
+  note         text null,
+  primary key (location_id, name)
 );
 
-create index on location.names (id);
+create index on location.names (location_id);
 create index on location.names (name);
 
 create view location.current_name as
-select distinct on (id) id, name, ts, note
+select distinct on (location_id) location_id, name, ts, note
 from location.names
-order by id, ts DESC;
+order by location_id, ts DESC;
 
 create table location.updates (
-  id         serial primary key,
-  ts         timestamp with time zone not null default now(),
-  us_state   us_state not null,
-  data       jsonb not null
+  location_id  serial primary key,
+  ts           timestamp with time zone not null default now(),
+  us_state     us_state not null,
+  data         jsonb not null
 );
 
 -- TODO: should we have a similar index with the col order swapped?
