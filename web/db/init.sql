@@ -32,6 +32,15 @@ select distinct on (id) id, name, ts, note
 from location.names
 order by id, ts DESC;
 
+create table location.updates (
+  id         serial primary key,
+  ts         timestamp with time zone not null default now(),
+  us_state   us_state not null,
+  data       jsonb not null
+);
+
+-- TODO: should we have a similar index with the col order swapped?
+create index on location.updates (ts, us_state);
 
 ------ Subscriptions ------
 
@@ -84,5 +93,38 @@ create table subscription.locations (
 
 create index on subscription.locations (subscription_id);
 create index on subscription.locations (location_id);
+
+
+------ Events ------
+
+create schema event;
+
+create type subject_type as enum ('subscription', 'locations');
+
+create table event.type (
+  id    serial primary key,
+  name  varchar(256) unique not null
+);
+
+create table event.events (
+  id                serial primary key,
+  ts                timestamp with time zone not null default now(),
+  event_type_id     integer references event.type,
+  subject_type      subject_type not null,
+  subscription_id   integer references subscription.subscriptions null,
+  note              text
+);
+
+create table event.events_locations (
+  event_id     integer references event.events,
+  location_id  integer references location.locations not null,
+
+  primary key (event_id, location_id)
+);
+
+-- TODO: should we have a similar index with the col order swapped?
+create index on event.events (ts, event_type_id);
+
+create index on event.events (subscription_id);
 
 COMMIT TRANSACTION;
