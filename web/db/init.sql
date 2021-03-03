@@ -1,3 +1,5 @@
+START TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
 ------ Locations ------
 
 create schema location;
@@ -35,33 +37,24 @@ order by id, ts DESC;
 
 create schema subscription;
 
-create table subscription.requests (
-  id              serial primary key,
-  ts              timestamp with time zone not null default now(),
-  email           varchar(500) not null,
-  language        varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'), -- if null, we default to en
-  location_names  text not null
-);
-
-comment on table subscription.requests is 'When we get a request for a subcription, we throw it in'
-                                          ' this simplistic table as fast as possible, just in case'
-                                          ' the load on the DB would be too great for doing all the'
-                                          ' various inserts etc that’d be needed to properly add'
-                                          ' the subscription to the subscriptions table, which'
-                                          ' entails checking constraints, updating indices, etc.';
-
 create table subscription.subscriptions (
   id         serial primary key,
-  request_id integer references subscription.requests not null,
-  email      varchar(500) not null unique,
-  language   varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'), -- if null, we default to en
+  email      varchar(500) not null,
+  
+  -- If null, we’ll default to `en` in the app code. But I want to preserve that we don’t know the
+  -- person’s actual preference.
+  language   varchar(5) null CHECK (language is null or language ~* '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$'),
+  
   nonce      varchar(200) not null
 );
 
-create unique index on subscription.subscriptions (lower(email));
-create index on subscription.subscriptions (request_id);
+create index on subscription.subscriptions (lower(email));
 
-create type subscription_state as enum ('unverified+inactive', 'verified+active', 'canceled');
+-- new: the verification email has not yet been sent
+-- pending-verification: the verification email has been sent; the link in it has not yet been opened
+-- active: the link in the verification email was opened; we will send notifications
+-- canceled: the recipient has canceled the subscription; we will not send any emails at all
+create type subscription_state as enum ('new', 'pending-verification', 'active', 'canceled');
 
 create table subscription.state_changes (
   subscription_id  integer references subscription.subscriptions not null,
@@ -91,3 +84,5 @@ create table subscription.locations (
 
 create index on subscription.locations (subscription_id);
 create index on subscription.locations (location_id);
+
+COMMIT TRANSACTION;

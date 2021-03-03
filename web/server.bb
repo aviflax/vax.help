@@ -11,7 +11,8 @@
 
 (pods/load-pod 'org.babashka/postgresql "0.0.1")
 
-(require '[pod.babashka.postgresql :as pg])
+(require '[pod.babashka.postgresql :as pg]
+         '[pod.babashka.postgresql.transaction :as transaction])
 
 (defn logger
   [level]
@@ -258,15 +259,18 @@
                    "\n\nPlease go back and try again.")}))
 
 (defn save-subscription-request
-  [{locations "locations", email "email" :as posted-form} lang]
-  (pg/execute! @dbconn
-               ["insert into subscription.requests (email, language, location_names)
-                        values (?, ?, ?)"
-                email
-                (name lang)
-                (if (string? locations)  ; if it’s parsed into a string, it’s probably a single location
-                  locations
-                  (str/join "|" locations))])
+  [{email "email" :as posted-form} lang]
+  (pg/with-transaction [tx @dbconn]
+    (let [[{id :subscriptions/id}]
+          (pg/execute! tx ["insert into subscription.subscriptions (email, language, nonce)
+                            values (?, ?, ?)"
+                           email (name lang) "TODO: THIS IS NOT ACTUALLY A NONCE"]
+                       {:return-keys true})]
+      (pg/execute! tx ["insert into subscription.state_changes (subscription_id, state)
+                            values (?, cast(? as subscription_state))"
+                       id "new"])
+      ;;; TODO: INSERT THE LOCATIONS! But soon, once we have the IDs
+    ))
   {:status  303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}})
