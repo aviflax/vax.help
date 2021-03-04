@@ -4,16 +4,18 @@ START TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
 create schema location;
 
-create type us_state as enum(
+create type location.us_state as enum(
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
   'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY',
   'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
   'WI', 'WY', 'DC', 'AS', 'GU', 'MP', 'PR', 'UM', 'VI');
 
 create table location.locations (
-  id        serial primary key,
-  us_state  us_state not null,
-  note      text null
+  id            serial primary key,
+  us_state      location.us_state not null,
+  initial_name  varchar(256) unique not null,
+  address       varchar(256) null,  -- I have no plan to handle changes to these 😅
+  note          text null
 );
 
 create table location.names (
@@ -35,7 +37,7 @@ order by location_id, ts DESC;
 create table location.updates (
   location_id  serial primary key,
   ts           timestamp with time zone not null default now(),
-  us_state     us_state not null,
+  us_state     location.us_state not null,
   data         jsonb not null
 );
 
@@ -63,12 +65,12 @@ create index on subscription.subscriptions (lower(email));
 -- pending-verification: the verification email has been sent; the link in it has not yet been opened
 -- active: the link in the verification email was opened; we will send notifications
 -- canceled: the recipient has canceled the subscription; we will not send any emails at all
-create type subscription_state as enum ('new', 'pending-verification', 'active', 'canceled');
+create type subscription.state as enum ('new', 'pending-verification', 'active', 'canceled');
 
 create table subscription.state_changes (
   subscription_id  integer references subscription.subscriptions not null,
   ts               timestamp with time zone not null default now(),
-  state            subscription_state not null,
+  state            subscription.state not null,
   note             text null
 );
 
@@ -99,18 +101,18 @@ create index on subscription.locations (location_id);
 
 create schema event;
 
-create type subject_type as enum ('subscription', 'locations');
-
 create table event.type (
   id    serial primary key,
   name  varchar(256) unique not null
 );
 
+create type event.subject_type as enum ('subscription', 'locations');
+
 create table event.events (
   id                serial primary key,
   ts                timestamp with time zone not null default now(),
   event_type_id     integer references event.type,
-  subject_type      subject_type not null,
+  subject_type      event.subject_type not null,
   subscription_id   integer references subscription.subscriptions null,
   note              text
 );

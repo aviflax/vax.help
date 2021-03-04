@@ -268,7 +268,7 @@
                            email (name lang) "TODO: THIS IS NOT ACTUALLY A NONCE"]
                        {:return-keys true})]
       (pg/execute! tx ["insert into subscription.state_changes (subscription_id, state)
-                        values (?, cast(? as subscription_state))"
+                        values (?, cast(? as subscription.state))"
                        id "new"])
       (doseq [loc-id locations]
         (pg/execute! tx ["insert into subscription.locations (subscription_id, location_id)
