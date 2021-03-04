@@ -38,6 +38,11 @@ select distinct on (location_id) location_id, name, ts, note
 from location.names
 order by location_id, ts DESC;
 
+create or replace view location.with_current_name as
+select l.id, l.us_state, n.name, l.address, l.note
+from location.locations l
+  left outer join location.current_name n on l.id = n.location_id;
+
 create table location.updates (
   location_id  serial primary key,
   ts           timestamp with time zone not null default now(),
@@ -85,7 +90,7 @@ select distinct on (subscription_id) subscription_id, state, ts, note
 from subscription.state_changes
 order by subscription_id, ts desc;
 
-create view subscription.subscriptions_with_current_state as
+create view subscription.with_current_state as
 select s.*, cs.state, cs.ts as state_change_ts, cs.note as state_change_note
 from subscription.subscriptions s
   left join subscription.current_state cs on s.id = cs.subscription_id

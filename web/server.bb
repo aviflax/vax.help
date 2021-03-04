@@ -178,11 +178,11 @@
         
         [:div#locations
          (mapcat identity
-          (for [{:keys [:locations/id :locations/initial_name :locations/address]} @locations
+          (for [{:keys [:with_current_name/id :with_current_name/name :with_current_name/address]} @locations
                 :let [elem-id (str "location-" id)]]
             [[:input {:type :checkbox, :name :locations, :value id, :id elem-id}]
               [:label {:for elem-id}
-              [:span.locationName initial_name]
+              [:span.locationName name]
               [:span.address address]]]))]
          
         [:label
@@ -259,7 +259,7 @@
                    "\n\nDid you check at least one location?"
                    "\n\nPlease go back and try again.")}))
 
-(defn save-subscription-request
+(defn save-subscription
   [{email "email", locations "locations" :as _posted-form} lang]
   (pg/with-transaction [tx @dbconn]
     (let [[{id :subscriptions/id}]
@@ -285,7 +285,7 @@
     (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
       (debug "decoded form:" posted-form)
       (or (validate-subscribe-request posted-form)
-          (save-subscription-request posted-form lang)))
+          (save-subscription posted-form lang)))
     (catch Exception e
       (error e)
       {:status  500
@@ -365,7 +365,9 @@
 (ensure-dbconn)
 
 ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
-(reset! locations (pg/execute! @dbconn ["select * from location.locations order by initial_name"]))
+(reset! locations (pg/execute! @dbconn ["select id, name, address from location.with_current_name order by name"]))
+
+(debug "locations:" @locations)
 
 (info "Starting HTTP server listening on port" port)
 (srv/run-server app {:port port})
