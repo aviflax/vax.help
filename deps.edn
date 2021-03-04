@@ -1,6 +1,7 @@
 {:deps
  {org.clojure/clojure           {:mvn/version "1.10.2"}
   cheshire/cheshire             {:mvn/version "5.10.0"}
+  http-kit/http-kit             {:mvn/version "2.5.3"}
   github-clojure/tools.logging  {:git/url "https://github.com/clojure/tools.logging"
                                  :sha "9a3330ca2dde44e2cf694303f3d6d82d97353260"
                                  :tag "tools.logging-1.1.0"}
