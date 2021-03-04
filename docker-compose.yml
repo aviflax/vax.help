@@ -22,3 +22,11 @@ services:
       DB_USERNAME: web
       DB_PASSWORD: 'F00B4r!'
     ports: ['8080:8080']
+  tasks:
+    build: tasks/
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: test
+      DB_USERNAME: web
+      DB_PASSWORD: 'F00B4r!'

@@ -1,0 +1,10 @@
+{:deps
+ {org.clojure/clojure           {:mvn/version "1.10.2"}
+  cheshire/cheshire             {:mvn/version "5.10.0"}
+  github-clojure/tools.logging  {:git/url "https://github.com/clojure/tools.logging"
+                                 :sha "9a3330ca2dde44e2cf694303f3d6d82d97353260"
+                                 :tag "tools.logging-1.1.0"}
+  github-seancorfield/next-jdbc {:git/url "https://github.com/seancorfield/next-jdbc"
+                                 :sha "5737495c4ef057414dead3836f41e3ac283cd3ea"
+                                 :tag "v1.1.613"}
+  org.postgresql/postgresql     {:mvn/version "42.2.10"}}}

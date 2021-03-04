@@ -11,7 +11,9 @@
 
 (pods/load-pod 'org.babashka/postgresql "0.0.1")
 
-(require '[pod.babashka.postgresql :as pg])
+(require '[pod.babashka.postgresql :as pg]
+         '[pod.babashka.postgresql.sql :as sql]
+         '[pod.babashka.postgresql.transaction :as transaction])
 
 (defn logger
   [level]
@@ -70,16 +72,16 @@
                                               :password (cv :db :password)
                                               :port     (cv :db :port)}))))))))
 
-(def locations
-  (json/parse-string (slurp "locations.json") true))
+;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
+(def locations (atom nil))
 
 (def supported-languages
   {:en "English"
    :es "Español"})
 
 (def copy
-  {"New York State COVID-19 Vaccine Availability Notifications"
-   {:es "Notificaciones de disponibilidad de la vacuna COVID-19 del estado de Nueva York"}
+  {"New York State COVID-19 Vaccine Appointment Availability Notifications"
+   {:es "Notificaciones de disponibilidad de citas de vacunas COVID-19 del estado de Nueva York"}
  
    "Check the locations about which you’d like to be notified"
    {:es "Comprueba las ubicaciones sobre las que te gustaría recibir notificaciones."}
@@ -137,7 +139,7 @@
   [lang]
   ;; TODO: add client-side form validation, once we’ve tested server-side validation
   (let [t     (translator lang)
-        title (t "New York State COVID-19 Vaccine Availability Notifications")]
+        title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
     (hiccup/html
     "<!DOCTYPE html>\n"
     [:html
@@ -176,11 +178,11 @@
         
         [:div#locations
          (mapcat identity
-          (for [{:keys [providerName address]} (:providerList locations)
-                :let [id (str "location-" providerName)]]
-            [[:input {:type :checkbox, :name :locations, :value providerName, :id id}]
-              [:label {:for id}
-              [:span.providerName providerName]
+          (for [{:keys [:with_current_name/id :with_current_name/name :with_current_name/address]} @locations
+                :let [elem-id (str "location-" id)]]
+            [[:input {:type :checkbox, :name :locations, :value id, :id elem-id}]
+              [:label {:for elem-id}
+              [:span.locationName name]
               [:span.address address]]]))]
          
         [:label
@@ -257,16 +259,24 @@
                    "\n\nDid you check at least one location?"
                    "\n\nPlease go back and try again.")}))
 
-(defn save-subscription-request
-  [{locations "locations", email "email" :as posted-form} lang]
-  (pg/execute! @dbconn
-               ["insert into subscription.requests (email, language, location_names)
-                        values (?, ?, ?)"
-                email
-                (name lang)
-                (if (string? locations)  ; if it’s parsed into a string, it’s probably a single location
-                  locations
-                  (str/join "|" locations))])
+(defn save-subscription
+  [{email "email", locations "locations" :as _posted-form} lang]
+  (pg/with-transaction [tx @dbconn]
+    (let [[{id :subscriptions/id}]
+          (pg/execute! tx ["insert into subscription.subscriptions (email, language, nonce)
+                            values (?, ?, ?)"
+                           email (name lang) "TODO: THIS IS NOT ACTUALLY A NONCE"]
+                       {:return-keys true})]
+      (pg/execute! tx ["insert into subscription.state_changes (subscription_id, state)
+                        values (?, cast(? as subscription.state))"
+                       id "new"])
+      (doseq [loc-id (if (coll? locations) ; if only one box is checked the value will be a scalar
+                         locations
+                         [locations])]
+        (pg/execute! tx ["insert into subscription.locations (subscription_id, location_id)
+                          values (?, ?)"
+                         id
+                         (Integer/parseInt loc-id)]))))
   {:status  303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}})
@@ -277,7 +287,7 @@
     (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
       (debug "decoded form:" posted-form)
       (or (validate-subscribe-request posted-form)
-          (save-subscription-request posted-form lang)))
+          (save-subscription posted-form lang)))
     (catch Exception e
       (error e)
       {:status  500
@@ -289,7 +299,7 @@
 (defn received-page
   [lang]
   (let [t     (translator lang)
-        title (t "New York State COVID-19 Vaccine Availability Notifications")]
+        title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
     (hiccup/html
     "<!DOCTYPE html>\n"
     [:html
@@ -355,6 +365,11 @@
 
 (info "Connecting to the database...")
 (ensure-dbconn)
+
+;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
+(reset! locations (pg/execute! @dbconn ["select id, name, address from location.with_current_name order by name"]))
+
+(debug "locations:" @locations)
 
 (info "Starting HTTP server listening on port" port)
 (srv/run-server app {:port port})
