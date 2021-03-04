@@ -270,7 +270,9 @@
       (pg/execute! tx ["insert into subscription.state_changes (subscription_id, state)
                         values (?, cast(? as subscription.state))"
                        id "new"])
-      (doseq [loc-id locations]
+      (doseq [loc-id (if (coll? locations) ; if only one box is checked the value will be a scalar
+                         locations
+                         [locations])]
         (pg/execute! tx ["insert into subscription.locations (subscription_id, location_id)
                           values (?, ?)"
                          id
