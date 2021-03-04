@@ -1,4 +1,4 @@
-(ns scripts.import-initial-locations
+(ns help.availability.scripts.import-initial-locations
   (:require [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
             [cheshire.core :as json]
@@ -45,7 +45,7 @@
       (doseq [{:keys [providerName address]} (:providerList parsed)]
         (let [{id :locations/id}
               (jdbc/execute-one! tx ["insert into location.locations (us_state, initial_name, address)
-                                     values (cast(? as location.us_state), ?, ?)"
+                                      values (cast(? as location.us_state), ?, ?)"
                                      "NY" providerName address]
                                  {:return-keys true})]
           (jdbc/execute-one! tx ["insert into location.names (location_id, name) values (?, ?)"
