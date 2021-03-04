@@ -1,19 +1,12 @@
-#!/usr/bin/env bb
-
-(ns script
-  (:require [babashka.pods :as pods]
-            [cheshire.core :as json]
+(ns help.availability.web.server
+  (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [hiccup.core :as hiccup]
+            [next.jdbc :as jdbc]
+            [next.jdbc.sql :as sql]
             [org.httpkit.server :as srv])
   (:import [java.net URLEncoder URLDecoder]))
-
-(pods/load-pod 'org.babashka/postgresql "0.0.1")
-
-(require '[pod.babashka.postgresql :as pg]
-         '[pod.babashka.postgresql.sql :as sql]
-         '[pod.babashka.postgresql.transaction :as transaction])
 
 (defn logger
   [level]
@@ -58,19 +51,19 @@
    to invoke this for every page load."
   []  
   (try
-    (pg/execute! @dbconn "select version()")
+    (jdbc/execute! @dbconn "select version()")
     (catch Exception e
       (swap! dbconn (fn [cur-conn]
                       (try
-                        (pg/execute! cur-conn ["select version()"])
+                        (jdbc/execute! cur-conn ["select version()"])
                         cur-conn
                         (catch Exception e
-                          (pg/get-connection {:dbtype   "postgresql"
-                                              :host     (cv :db :host)
-                                              :dbname   (cv :db :name)
-                                              :user     (cv :db :username)
-                                              :password (cv :db :password)
-                                              :port     (cv :db :port)}))))))))
+                          (jdbc/get-connection {:dbtype   "postgresql"
+                                                :host     (cv :db :host)
+                                                :dbname   (cv :db :name)
+                                                :user     (cv :db :username)
+                                                :password (cv :db :password)
+                                                :port     (cv :db :port)}))))))))
 
 ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
 (def locations (atom nil))
@@ -261,19 +254,19 @@
 
 (defn save-subscription
   [{email "email", locations "locations" :as _posted-form} lang]
-  (pg/with-transaction [tx @dbconn]
+  (jdbc/with-transaction [tx @dbconn]
     (let [[{id :subscriptions/id}]
-          (pg/execute! tx ["insert into subscription.subscriptions (email, language, nonce)
+          (jdbc/execute! tx ["insert into subscription.subscriptions (email, language, nonce)
                             values (?, ?, ?)"
                            email (name lang) "TODO: THIS IS NOT ACTUALLY A NONCE"]
                        {:return-keys true})]
-      (pg/execute! tx ["insert into subscription.state_changes (subscription_id, state)
+      (jdbc/execute! tx ["insert into subscription.state_changes (subscription_id, state)
                         values (?, cast(? as subscription.state))"
                        id "new"])
       (doseq [loc-id (if (coll? locations) ; if only one box is checked the value will be a scalar
                          locations
                          [locations])]
-        (pg/execute! tx ["insert into subscription.locations (subscription_id, location_id)
+        (jdbc/execute! tx ["insert into subscription.locations (subscription_id, location_id)
                           values (?, ?)"
                          id
                          (Integer/parseInt loc-id)]))))
@@ -363,16 +356,15 @@
 
 (def port 8080)
 
-(info "Connecting to the database...")
-(ensure-dbconn)
+(defn start
+  [_args]
+  (info "Connecting to the database...")
+  (ensure-dbconn)
 
-;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
-(reset! locations (pg/execute! @dbconn ["select id, name, address from location.with_current_name order by name"]))
+  ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
+  (reset! locations (jdbc/execute! @dbconn ["select id, name, address from location.with_current_name order by name"]))
 
-(debug "locations:" @locations)
+  (debug "locations:" @locations)
 
-(info "Starting HTTP server listening on port" port)
-(srv/run-server app {:port port})
-
-;; Prevent Babashka from exiting
-@(promise)
+  (info "Starting HTTP server listening on port" port)
+  (srv/run-server app {:port port}))
