@@ -18,6 +18,10 @@ create table location.locations (
   note          text null
 );
 
+comment on column location.locations.initial_name is
+  'This is not meant to be used by the app; it’s really just for convenience when scanning/browsing'
+  ' the data';
+
 create table location.names (
   location_id  integer references location.locations not null,
   name         varchar(1000) not null,
