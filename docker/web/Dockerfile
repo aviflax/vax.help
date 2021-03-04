@@ -11,4 +11,4 @@ COPY src ./src/
 
 EXPOSE 8080
 
-CMD [ "clojure" "-X" "help.availability.web.server/start" ]
+CMD [ "clojure", "-X", "help.availability.web.server/start" ]
