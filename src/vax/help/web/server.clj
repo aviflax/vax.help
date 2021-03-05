@@ -84,6 +84,7 @@
     [:html
       [:head
         [:meta {:charset "UTF-8"}]
+        [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
         [:title title]
         [:style
          "html, body, select, option, input { font-family: Charter, Palatino; font-size: large; }
@@ -128,9 +129,9 @@
           [:h3 (t "Enter the email address at which you’d like to be notified when the checked locations have new availability")]
           [:input {:type :email, :name :email, :required :required, :title "email address (required)"}]]
         
-        [:div
-          [:input {:type :submit
-                   :value (t "Receive Notifications via Email")}]]
+        [:h3 (t "Click/tap the button below to create your subscription")]
+         
+        [:input {:type :submit, :value (t "Receive Notifications via Email")}]
          
         [:footer
          [:p

@@ -16,6 +16,9 @@
  "with data from"
  {:es "con datos de"}
 
+ "Click/tap the button below to create your subscription"
+ {:es "Haga clic / toque el botón de abajo para crear su suscripción"}
+
  "Receive Notifications via Email"
  {:es "Recibir notificaciones por correo electrónico"}
 
