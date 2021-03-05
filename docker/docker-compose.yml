@@ -4,8 +4,8 @@ services:
     image: 'postgres:13.2-alpine'
     restart: always
     environment:
-      POSTGRES_DB: test
-      POSTGRES_USER: web
+      POSTGRES_DB: vax_help
+      POSTGRES_USER: vax_help
       POSTGRES_PASSWORD: 'F00B4r!'
     ports: ['5432:5432']
   db_wait:
@@ -20,8 +20,8 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: '5432'
-      DB_NAME: test
-      DB_USERNAME: web
+      DB_NAME: vax_help
+      DB_USERNAME: vax_help
       DB_PASSWORD: 'F00B4r!'
     ports: ['8080:8080']
   background:
@@ -32,12 +32,12 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: '5432'
-      DB_NAME: test
-      DB_USERNAME: web
+      DB_NAME: vax_help
+      DB_USERNAME: vax_help
       DB_PASSWORD: 'F00B4r!'
       FETCH_LIMIT: 100
       POSTMARK_SERVER_TOKEN: '${POSTMARK_SERVER_TOKEN}'
-      RENDER_EXTERNAL_URL: 'http://localhost:8080'
+      EXTERNAL_BASE_URL: 'http://localhost:8080'
       SLEEP_SECS: 2
 
   # tasks:
