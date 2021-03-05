@@ -1,4 +1,4 @@
-(ns help.availability.scripts.import-initial-locations
+(ns vax.help.scripts.import-initial-locations
   (:require [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
             [cheshire.core :as json]

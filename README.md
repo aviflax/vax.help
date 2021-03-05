@@ -1,1 +1,1 @@
-# availability.help
+# vax.help

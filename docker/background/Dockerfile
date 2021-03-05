@@ -14,4 +14,4 @@ COPY src ./src/
 
 EXPOSE 8080
 
-CMD [ "clojure", "-X", "help.availability.background/start" ]
+CMD [ "clojure", "-X", "vax.help.background/start" ]

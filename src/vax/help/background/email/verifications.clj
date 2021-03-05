@@ -1,7 +1,7 @@
-(ns help.availability.background.email.verifications
+(ns vax.help.background.email.verifications
   (:require [clojure.string :as str]
             [com.brunobonacci.mulog :as μ]
-            [help.availability.i8n :as i8n]
+            [vax.help.i8n :as i8n]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
             [next.jdbc.sql :as sql])
