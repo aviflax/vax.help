@@ -3,4 +3,4 @@
 # shellcheck disable=SC1091
 source local.env
 
-docker-compose -f docker/docker-compose.yml -p availability.help "$@"
+docker-compose -f docker/docker-compose.yml -p vax.help "$@"

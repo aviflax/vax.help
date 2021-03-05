@@ -1,6 +1,6 @@
-(ns help.availability.background
+(ns vax.help.background
   (:require [com.brunobonacci.mulog :as μ]
-            [help.availability.background.email.verifications :as verifications]))
+            [vax.help.background.email.verifications :as verifications]))
 
 (defn start
   [_args]

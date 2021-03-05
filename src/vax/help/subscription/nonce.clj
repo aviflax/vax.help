@@ -1,4 +1,4 @@
-(ns help.availability.subscription.nonce
+(ns vax.help.subscription.nonce
   "Copied verbatim from https://github.com/funcool/buddy-core/blob/bd31ff9b802e689b046afae0f8c29ed70bb15ab5/src/buddy/core/nonce.clj"
   (:require [clojure.string :as str])
   (:import java.security.SecureRandom))

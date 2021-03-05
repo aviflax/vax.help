@@ -1,4 +1,4 @@
-(ns help.availability.i8n
+(ns vax.help.i8n
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [com.brunobonacci.mulog :as μ]))

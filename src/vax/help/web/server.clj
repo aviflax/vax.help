@@ -1,9 +1,9 @@
-(ns help.availability.web.server
+(ns vax.help.web.server
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [help.availability.i8n :as i8n]
-            [help.availability.subscription.nonce :as nonce]
+            [vax.help.i8n :as i8n]
+            [vax.help.subscription.nonce :as nonce]
             [hiccup.core :as hiccup]
             [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
