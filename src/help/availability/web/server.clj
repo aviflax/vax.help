@@ -2,6 +2,8 @@
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [help.availability.i8n :as i8n]
+            [help.availability.subscription.nonce :as nonce]
             [hiccup.core :as hiccup]
             [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
@@ -18,7 +20,7 @@
 (def error (logger "ERROR"))
 
 (defn env!
-  "Throws if a the environment variable is missing or blank."
+  "Throws if the environment variable is missing or blank."
   [vn]
   (let [vv (System/getenv vn)]
     (if (or (not vv)
@@ -72,66 +74,10 @@
   {:en "English"
    :es "Español"})
 
-(def copy
-  {"New York State COVID-19 Vaccine Appointment Availability Notifications"
-   {:es "Notificaciones de disponibilidad de citas de vacunas COVID-19 del estado de Nueva York"}
- 
-   "Check the locations about which you’d like to be notified"
-   {:es "Comprueba las ubicaciones sobre las que te gustaría recibir notificaciones."}
-
-   "Indicates locations for which eligibility is restricted by residency"
-   {:es "Indica lugares para los que la elegibilidad está restringida por residencia"}
-
-   "Enter the email address at which you’d like to be notified when the checked locations have new availability"
-   {:es "Ingrese la dirección de correo electrónico en la que desea recibir una notificación cuando las ubicaciones marcadas tengan nueva disponibilidad"}
-   
-   "Site created by"
-   {:es "Sitio creado por"}
-
-   "with data from"
-   {:es "con datos de"}
-   
-   "Receive Notifications via Email"
-   {:es "Recibir notificaciones por correo electrónico"}
-   
-   "Subscription Request Received"
-   {:es "Solicitud de suscripción recibida"}
-
-   "We have received your request to subscribe to appointment availability changes for the selected locations."
-   {:es "Hemos recibido su solicitud para suscribirse a los cambios de disponibilidad de citas para las ubicaciones seleccionadas."}
-
-   "If all goes well, you will receive a confirmation via email shortly."
-   {:es "Si todo va bien, recibirá una confirmación por correo electrónico en breve."}
-
-   "Once you click the link in that email, you’ll be subscribed."
-   {:es "Una vez que haga clic en el enlace de ese correo electrónico, estará suscrito."}
-
-   "Good luck!"
-   {:es "¡Buena suerte!"}})
-
-(defn translate
-  [phrase lang]
-  (if (= lang :en)
-    (do
-      (when-not (contains? copy phrase)
-        (warn "phrase not found in copy map:" phrase))
-      phrase)
-    (if-let [trans (get-in copy [phrase lang])]
-      trans
-      (do
-        (warn "missing translation" lang "for" phrase)
-        phrase))))
-
-(defn translator
-  "Returns a function that will accept a phrase and return its translation in the given lang, if
-   any."
-  [lang]
-  (fn [phrase] (translate phrase lang)))
-
 (defn home-page
   [lang]
   ;; TODO: add client-side form validation, once we’ve tested server-side validation
-  (let [t     (translator lang)
+  (let [t     (i8n/translator lang)
         title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
     (hiccup/html
     "<!DOCTYPE html>\n"
@@ -179,20 +125,20 @@
               [:span.address address]]]))]
          
         [:label
-          [:h3 (translate "Enter the email address at which you’d like to be notified when the checked locations have new availability" lang)]
+          [:h3 (t "Enter the email address at which you’d like to be notified when the checked locations have new availability")]
           [:input {:type :email, :name :email, :required :required, :title "email address (required)"}]]
         
         [:div
           [:input {:type :submit
-                   :value (translate "Receive Notifications via Email" lang)}]]
+                   :value (t "Receive Notifications via Email")}]]
          
         [:footer
          [:p
-          (translate "Site created by" lang)
+          (t "Site created by")
           " "
           [:a {:href "mailto:avi@aviflax.com"} "Avi Flax"]
           " "
-          (translate "with data from" lang)
+          (t "with data from")
           " "
           [:a {:href "https://am-i-eligible.covid19vaccine.health.ny.gov"}
            "https://am-i-eligible.covid19vaccine.health.ny.gov"]]]]]])))
@@ -255,21 +201,20 @@
 (defn save-subscription
   [{email "email", locations "locations" :as _posted-form} lang]
   (jdbc/with-transaction [tx @dbconn]
-    (let [[{id :subscriptions/id}]
-          (jdbc/execute! tx ["insert into subscription.subscriptions (email, language, nonce)
-                            values (?, ?, ?)"
-                           email (name lang) "TODO: THIS IS NOT ACTUALLY A NONCE"]
+    (let [{id :subscriptions/id}
+          (jdbc/execute-one! tx ["insert into subscription.subscriptions (email, language, nonce)
+                                  values (?, ?, ?)"
+                                 email (name lang) (nonce/random-str 16)]
                        {:return-keys true})]
       (jdbc/execute! tx ["insert into subscription.state_changes (subscription_id, state)
-                        values (?, cast(? as subscription.state))"
-                       id "new"])
+                          values (?, cast(? as subscription.state))"
+                         id "new"])
       (doseq [loc-id (if (coll? locations) ; if only one box is checked the value will be a scalar
-                         locations
-                         [locations])]
+                       locations
+                       [locations])]
         (jdbc/execute! tx ["insert into subscription.locations (subscription_id, location_id)
-                          values (?, ?)"
-                         id
-                         (Integer/parseInt loc-id)]))))
+                            values (?, ?)"
+                           id (Integer/parseInt loc-id)]))))
   {:status  303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}})
@@ -291,7 +236,7 @@
 
 (defn received-page
   [lang]
-  (let [t     (translator lang)
+  (let [t     (i8n/translator lang)
         title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
     (hiccup/html
     "<!DOCTYPE html>\n"

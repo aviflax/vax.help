@@ -84,6 +84,7 @@ create table subscription.state_changes (
 );
 
 create index on subscription.state_changes (subscription_id);
+create index on subscription.state_changes (state);
 
 create view subscription.current_state as
 select distinct on (subscription_id) subscription_id, state, ts, note

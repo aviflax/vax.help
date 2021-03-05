@@ -1,0 +1,45 @@
+{"New York State COVID-19 Vaccine Appointment Availability Notifications"
+ {:es "Notificaciones de disponibilidad de citas de vacunas COVID-19 del estado de Nueva York"}
+
+ "Check the locations about which you’d like to be notified"
+ {:es "Comprueba las ubicaciones sobre las que te gustaría recibir notificaciones."}
+
+ "Indicates locations for which eligibility is restricted by residency"
+ {:es "Indica lugares para los que la elegibilidad está restringida por residencia"}
+
+ "Enter the email address at which you’d like to be notified when the checked locations have new availability"
+ {:es "Ingrese la dirección de correo electrónico en la que desea recibir una notificación cuando las ubicaciones marcadas tengan nueva disponibilidad"}
+
+ "Site created by"
+ {:es "Sitio creado por"}
+
+ "with data from"
+ {:es "con datos de"}
+
+ "Receive Notifications via Email"
+ {:es "Recibir notificaciones por correo electrónico"}
+
+ "Subscription Request Received"
+ {:es "Solicitud de suscripción recibida"}
+
+ "We have received your request to subscribe to appointment availability changes for the selected locations."
+ {:es "Hemos recibido su solicitud para suscribirse a los cambios de disponibilidad de citas para las ubicaciones seleccionadas."}
+
+ "If all goes well, you will receive a confirmation via email shortly."
+ {:es "Si todo va bien, recibirá una confirmación por correo electrónico en breve."}
+
+ "Once you click the link in that email, you’ll be subscribed."
+ {:es "Una vez que haga clic en el enlace de ese correo electrónico, estará suscrito."}
+
+ "Good luck!"
+ {:es "¡Buena suerte!"}
+ 
+ "Confirm your subscription to COVID-19 vaccine appointment availability notifications"
+ {:es "Confirme su suscripción a las notificaciones de disponibilidad de citas para la vacuna COVID-19"}
+
+ "To verify your subscription to COVID-19 vaccine appointment availability notifications, please open this link:"
+ {:es "Para verificar su suscripción a las notificaciones de disponibilidad de citas para la vacuna COVID-19, abra este enlace:"}
+ 
+ "If you did not request such notifications, you may ignore this email."
+ {:es "Si no solicitó dichas notificaciones, puede ignorar este correo electrónico."}
+}

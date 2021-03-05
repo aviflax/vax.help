@@ -1,1 +1,5 @@
 .cpcache
+*.env
+.calva
+.lsp
+.nrepl*

@@ -1,3 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+# shellcheck disable=SC1091
+source local.env
 
 docker-compose -f docker/docker-compose.yml -p availability.help "$@"
