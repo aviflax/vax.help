@@ -56,7 +56,7 @@
   "Get subscriptions for which we have not yet sent verification emails."
   [dbconn cv]
   (sql/query dbconn
-             ["SELECT id, email, language, nonce, state, state_change_ts
+             ["SELECT id, email, language as lang, nonce, state, state_change_ts
                FROM subscription.with_current_state
                WHERE state='new'
                ORDER BY state_change_ts ASC
@@ -78,13 +78,13 @@
    (verification-url lang nonce base-url)))
 
 (defn sub->email
-  [{:keys [id email language nonce] :as _sub}]
-  (let [t           (i8n/translator language)
+  [{:keys [email lang nonce] :as _sub} baseurl]
+  (let [t           (i8n/translator lang)
         sender      "updates@vax.help"
         recipient   email
         subject     (t "Confirm your subscription to COVID-19 vaccine appointment availability notifications")
         html-body   nil
-        text-body   (body t language nonce (cv :baseurl))]
+        text-body   (body t lang nonce baseurl)]
     (Message. sender recipient subject html-body text-body)))
 
 (defn send-verification-email
@@ -94,34 +94,37 @@
    Might throw if e.g. something goes really bad. (I’m not entirely sure; I’d need to read more of
    the source of the Postmark Java client lib (which is at https://github.com/wildbit/postmark-java
    ). This is one of the problems with using a wrapper.)"
-  [{:keys [id email language nonce] :as sub} pm-client dbconn cv]
+  [{:keys [id nonce] :as sub} pm-client cv]
   (try
-    (let [msg         (sub->email sub)
+    (let [msg           (sub->email sub (cv :baseurl))
+          
+          result        (do
+                          (μ/log ::sending-email, :subscription/id id, :subscription/nonce nonce, :email/from (.getFrom msg), :email/to (.getTo msg), :email/subject (.getSubject msg))
+                          (.deliverMessage pm-client msg))  ; returns an instance of MessageResponse
 
-          _           (μ/log ::sending-email, :sub-id id, :sender sender, :recipient recipient, :subject subject, :nonce nonce, :body text-body)
-
-          result      (.deliverMessage pm-client msg)  ; returns an instance of MessageResponse
-
-          error-code  (.getErrorCode result)
-          success?    (zero? error-code)
-          result-msg  (.getMessage result)
-          msg-id      (.getMessageId result)]
-      (μ/log ::postmark-response, :sub-id id, :error-code error-code, :result-message result-msg, :message-id msg-id)
+          error-code    (.getErrorCode result)
+          success?      (zero? error-code)
+          response-msg  (.getMessage result)
+          msg-id        (.getMessageId result)]
+      (μ/log ::postmark-response, :subscription/id id, :postmark/error-code error-code, :postmark/response-msg response-msg, :postmark/message-id msg-id)
+      ; I’m pretty sure the lib throws on any kind of error, so this is probably unnecessary. That
+      ; said, what else would we do? Not check the error code? That would be bizarre.
       (when-not success?
-        {:error/category       :fault
-         :error/code           error-code
-         :error/message        result-msg
-         :postmark/message-id  msg-id}))
+        (throw (ex-info (str "Postmark returned a non-zero error code: " error-code)
+                        {:subscription/id       id
+                         :postmark/error-code   error-code
+                         :postmark/response-msg response-msg}))))
     (catch Exception e
-      (μ/log ::postmark-error, :sub-id id, :exception-class (.getSimpleName e) :exception-message (.getMessage e))
-      {:error/message   (.getMessage e)
-       :error/category  :fault
-       :exception       e})))
+      (μ/log ::postmark-error, :subscription/id id, :ex-class (.getSimpleName (class e)), :ex-msg (.getMessage e), :ex-data (ex-data e))
+      {:error/category   :fault
+       :error/message    (.getMessage e)
+       :exception        e
+       :subscription/id  id})))
 
 (defn transition-sub-state
   [{id :id, :as _sub} dbconn]
   (let [new-state "pending-verification"]
-    (μ/log ::transitioning-sub-state, :sub-id id, :new-state new-state)
+    (μ/log ::transitioning-sub-state, :subscription/id id, :new-state new-state)
     (jdbc/execute! dbconn
                    ["insert into subscription.state_changes (subscription_id, state)
                      values (?, cast(? as subscription.state))"
@@ -137,9 +140,9 @@
     (μ/log ::db-conn :connection :successful)
     (while true
       (when-let [new-subs (seq (new-subs dbconn cv))]
-        (μ/log ::new-subs-found :subs new-subs)
+        (μ/log ::new-subs-found :count (count new-subs))
         (doseq [sub new-subs]
-          (if-let [send-error (send-verification-email sub pm-client dbconn cv)]
+          (if-let [_send-error (send-verification-email sub pm-client cv)]
             (Thread/sleep (cv :err-sleep-ms))
             (transition-sub-state sub dbconn)))))
       (Thread/sleep (cv :sleep-ms))))
