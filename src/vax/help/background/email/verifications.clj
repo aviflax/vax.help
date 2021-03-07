@@ -17,6 +17,17 @@
       (throw (RuntimeException. (format "Required environment variable %s not found." vn)))
       vv)))
 
+(defn env
+  [vn default]
+  (or (System/getenv vn) default))
+
+(defn- ss->ms
+  "Convert a string containing a number of seconds to an integer equivalent in milliseconds"
+  [v]
+  (-> v
+      (Integer/parseInt)
+      (* 1000)))
+
 (defn build-config!
   "Throws if a required environment variable is missing or blank."
   []
@@ -33,9 +44,8 @@
                  ::comment     "This is (and must be) a valid next.jdbc dbspec."}
    :fetch-limit (Integer/parseInt (env! "FETCH_LIMIT"))
    :postmark    {:server-token (env! "POSTMARK_SERVER_TOKEN")}
-   :sleep-ms    (-> (env! "SLEEP_SECS")
-                    (Integer/parseInt)
-                    (* 1000))})
+   :sleep-ms      (ss->ms (env! "SLEEP_SECS"))  ; how long to pause between each "batch" i.e. query
+   :err-sleep-ms  (ss->ms (env "ERR_SLEEP_SECS" "1"))})  ; how long to pause after an error
 
 (defn config-val-getter
   [config]
@@ -67,6 +77,16 @@
         (t "If you did not request such notifications, you may ignore this email."))
    (verification-url lang nonce base-url)))
 
+(defn sub->email
+  [{:keys [id email language nonce] :as _sub}]
+  (let [t           (i8n/translator language)
+        sender      "updates@vax.help"
+        recipient   email
+        subject     (t "Confirm your subscription to COVID-19 vaccine appointment availability notifications")
+        html-body   nil
+        text-body   (body t language nonce (cv :baseurl))]
+    (Message. sender recipient subject html-body text-body)))
+
 (defn send-verification-email
   "Returns nil upon success, otherwise a map representing an anomaly.
    TODO: return a proper ::anom/anomaly
@@ -74,28 +94,29 @@
    Might throw if e.g. something goes really bad. (I’m not entirely sure; I’d need to read more of
    the source of the Postmark Java client lib (which is at https://github.com/wildbit/postmark-java
    ). This is one of the problems with using a wrapper.)"
-  [{:keys [id email language nonce] :as _sub} pm-client dbconn cv]
-  (let [t           (i8n/translator language)
-        sender      "updates@vax.help"
-        recipient   email
-        subject     (t "Confirm your subscription to COVID-19 vaccine appointment availability notifications")
-        html-body   nil
-        text-body   (body t language nonce (cv :baseurl))
-        msg         (Message. sender recipient subject html-body text-body)
+  [{:keys [id email language nonce] :as sub} pm-client dbconn cv]
+  (try
+    (let [msg         (sub->email sub)
 
-        _           (μ/log ::sending-email, :sub-id id, :sender sender, :recipient recipient, :subject subject, :nonce nonce, :body text-body)
+          _           (μ/log ::sending-email, :sub-id id, :sender sender, :recipient recipient, :subject subject, :nonce nonce, :body text-body)
 
-        result      (.deliverMessage pm-client msg)  ; returns an instance of MessageResponse
+          result      (.deliverMessage pm-client msg)  ; returns an instance of MessageResponse
 
-        error-code  (.getErrorCode result)
-        success?    (zero? error-code)
-        result-msg  (.getMessage result)
-        msg-id      (.getMessageId result)]
-    (μ/log ::postmark-response, :sub-id id, :error-code error-code, :result-message result-msg, :message-id msg-id)
-    (when-not success?
-      {:error/code           error-code
-       :error/message        result-msg
-       :postmark/message-id  msg-id})))
+          error-code  (.getErrorCode result)
+          success?    (zero? error-code)
+          result-msg  (.getMessage result)
+          msg-id      (.getMessageId result)]
+      (μ/log ::postmark-response, :sub-id id, :error-code error-code, :result-message result-msg, :message-id msg-id)
+      (when-not success?
+        {:error/category       :fault
+         :error/code           error-code
+         :error/message        result-msg
+         :postmark/message-id  msg-id}))
+    (catch Exception e
+      (μ/log ::postmark-error, :sub-id id, :exception-class (.getSimpleName e) :exception-message (.getMessage e))
+      {:error/message   (.getMessage e)
+       :error/category  :fault
+       :exception       e})))
 
 (defn transition-sub-state
   [{id :id, :as _sub} dbconn]
@@ -119,6 +140,6 @@
         (μ/log ::new-subs-found :subs new-subs)
         (doseq [sub new-subs]
           (if-let [send-error (send-verification-email sub pm-client dbconn cv)]
-            (Thread/sleep 1000)  ; TODO: move that constant to a var or into the config
+            (Thread/sleep (cv :err-sleep-ms))
             (transition-sub-state sub dbconn)))))
       (Thread/sleep (cv :sleep-ms))))
