@@ -13,4 +13,12 @@
 
   github-seancorfield/next-jdbc  {:git/url "https://github.com/seancorfield/next-jdbc"
                                   :sha     "5737495c4ef057414dead3836f41e3ac283cd3ea"
-                                  :tag     "v1.1.613"}}}
+                                  :tag     "v1.1.613"}}
+                                  
+  :aliases
+  {:dev
+   {:jvm-opts ["-XX:-OmitStackTraceInFastThrow"
+               "--illegal-access=deny"]}
+
+   :repl
+   {:jvm-opts ["-Dclojure.server.repl={:port,5555,:accept,clojure.core.server/repl}"]}}}

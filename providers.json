@@ -1,0 +1,149 @@
+{
+  "providerList": [
+    {
+      "providerId": 1013,
+      "providerName": "**York College - Health and Physical Education Complex - Queens ",
+      "address": "Jamaica, NY",
+      "availableAppointments": "AA"
+    },
+    {
+      "providerId": 1008,
+      "providerName": "Plattsburgh International Airport -Connecticut Building",
+      "address": "Plattsburgh, NY",
+      "availableAppointments": "AA"
+    },
+    {
+      "providerId": 1006,
+      "providerName": "SUNY Potsdam Field House",
+      "address": "Potsdam, NY",
+      "availableAppointments": "AA"
+    },
+    {
+      "providerId": 1002,
+      "providerName": "State Fair Expo Center: NYS Fairgrounds - 8:00am – 7:00pm",
+      "address": "Syracuse, NY",
+      "availableAppointments": "AA"
+    },
+    {
+      "providerId": 1010,
+      "providerName": "SUNY Polytechnic Institute - Wildcat Field House",
+      "address": "Utica, NY",
+      "availableAppointments": "AA"
+    },
+    {
+      "providerId": 1016,
+      "providerName": "**Washington Avenue Armory - Albany, Schenectady, Troy",
+      "address": "Albany, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1003,
+      "providerName": "SUNY Albany ",
+      "address": "Albany, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1022,
+      "providerName": "SUNY Genesee Community College - Batavia ",
+      "address": "Batavia, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1014,
+      "providerName": "**Medgar Evers College - Brooklyn",
+      "address": "Brooklyn, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1018,
+      "providerName": "**Delavan Grider Community Center - Buffalo",
+      "address": "Buffalo, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1011,
+      "providerName": "University at Buffalo South Campus - Harriman Hall",
+      "address": "Buffalo, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1012,
+      "providerName": "Rochester Dome Arena",
+      "address": "Henrietta, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1009,
+      "providerName": "SUNY Binghamton",
+      "address": "Johnson City, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1000,
+      "providerName": "Javits Center - 8:00am – 7:00pm",
+      "address": "New York, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1019,
+      "providerName": "Javits Center - 9:00pm – 6:00am",
+      "address": "New York, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1023,
+      "providerName": "Jamestown Community College - Olean Campus",
+      "address": "Olean, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1021,
+      "providerName": "Marist College - Poughkeepsie ",
+      "address": "Poughkeepsie, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1017,
+      "providerName": "**Former Kodak Hawkeye Parking Lot - Rochester",
+      "address": "Rochester, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1007,
+      "providerName": "Aqueduct Racetrack - Racing Hall",
+      "address": "South Ozone Park, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1005,
+      "providerName": "SUNY Stony Brook University Innovation and Discovery Center",
+      "address": "Stony Brook, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1020,
+      "providerName": "State Fair Expo Center: NYS Fairgrounds - 10:00pm – 6:00am",
+      "address": "Syracuse, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1001,
+      "providerName": "Jones Beach - Field 3",
+      "address": "Wantagh, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1004,
+      "providerName": "Westchester County Center",
+      "address": "White Plains, NY",
+      "availableAppointments": "NAC"
+    },
+    {
+      "providerId": 1015,
+      "providerName": "**New York National Guard Armory - Yonkers and Mount Vernon",
+      "address": "Yonkers, NY",
+      "availableAppointments": "NAC"
+    }
+  ],
+  "lastUpdated": "3/7/2021, 11:06:19 AM"
+}

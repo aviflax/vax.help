@@ -1,57 +1,96 @@
 START TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
------- Locations ------
+------ Feeds ------
 
-create schema location;
+create schema feed;
 
-create type location.us_state as enum(
+create type feed.state_or_territory as enum(
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
   'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY',
   'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
   'WI', 'WY', 'DC', 'AS', 'GU', 'MP', 'PR', 'UM', 'VI');
 
-create table location.locations (
-  id            serial primary key,
-  us_state      location.us_state not null,
-  initial_name  varchar(256) unique not null,
-  address       varchar(256) null,  -- I have no plan to handle changes to these 😅
-  note          text null
+create table feed.feeds (
+  id                  serial primary key,
+  state_or_territory  feed.state_or_territory not null,
+  name                varchar(256) unique not null,
+  data_url            varchar(4096) unique not null,
+  notes               text null
 );
 
-comment on column location.locations.initial_name is
+create index on feed.feeds (state_or_territory);
+
+create table feed.updates (
+  feed_id  integer references feed.feeds not null,
+  ts       timestamp with time zone not null default now(),
+  data     jsonb not null,
+
+  primary key (feed_id, ts)
+);
+
+
+
+
+
+------ Providers ------
+
+-- “provider” rather than “location” because e.g. what about “mobile” providers that e.g. do housecalls!
+create schema provider;
+
+create table provider.providers (
+  id               serial primary key,
+  feed_id          integer references feed.feeds not null,
+  id_from_feed     varchar(128) not null,
+  initial_name     varchar(256) unique not null,
+  initial_address  varchar(256) null,  -- Not currently handling changes to these 😅
+  note             text null,
+
+  unique (feed_id, id_from_feed)
+);
+
+comment on column provider.providers.id_from_feed is
+  'The ID of the provider in the context of its feed. NYS uses ints but this is a varchar to'
+  ' accomodate other possible schemes.';
+
+comment on column provider.providers.initial_name is
   'This is not meant to be used by the app; it’s really just for convenience when scanning/browsing'
   ' the data';
 
-create table location.names (
-  location_id  integer references location.locations not null,
+create index on provider.providers (feed_id);
+create index on provider.providers (id_from_feed);
+
+create table provider.names (
+  provider_id  integer references provider.providers not null,
   name         varchar(1000) not null,
   ts           timestamp with time zone not null default now(),
   note         text null,
-  primary key (location_id, name)
+
+  primary key (provider_id, name)
 );
 
-create index on location.names (location_id);
-create index on location.names (name);
+create index on provider.names (provider_id);
+create index on provider.names (name);
 
-create view location.current_name as
-select distinct on (location_id) location_id, name, ts, note
-from location.names
-order by location_id, ts DESC;
+create view provider.current_name as
+select distinct on (provider_id) provider_id, name, ts, note
+from provider.names
+order by provider_id, ts DESC;
 
-create or replace view location.with_current_name as
-select l.id, l.us_state, n.name, l.address, l.note
-from location.locations l
-  left outer join location.current_name n on l.id = n.location_id;
+create or replace view provider.with_current_name as
+select p.id, f.state_or_territory, n.name, p.initial_address, p.note
+from provider.providers p
+  left join feed.feeds f on p.feed_id = f.id
+  left outer join provider.current_name n on p.id = n.provider_id;
 
-create table location.updates (
-  location_id  serial primary key,
-  ts           timestamp with time zone not null default now(),
-  us_state     location.us_state not null,
-  data         jsonb not null
-);
+-- create table provider.updates (
+--   provider_id  serial primary key,
+--   ts           timestamp with time zone not null default now(),
+--   us_state     provider.us_state not null,
+--   data         jsonb not null
+-- );
 
--- TODO: should we have a similar index with the col order swapped?
-create index on location.updates (ts, us_state);
+-- -- TODO: should we have a similar index with the col order swapped?
+-- create index on provider.updates (ts, us_state);
 
 ------ Subscriptions ------
 
@@ -97,46 +136,48 @@ from subscription.subscriptions s
   left join subscription.current_state cs on s.id = cs.subscription_id
 order by cs.ts;
 
-create table subscription.locations (
+create table subscription.providers (
   subscription_id  integer references subscription.subscriptions not null,
-  location_id      integer references location.locations not null,
-  primary key (subscription_id, location_id)
+  provider_id      integer references provider.providers not null,
+  primary key (subscription_id, provider_id)
 );
 
-create index on subscription.locations (subscription_id);
-create index on subscription.locations (location_id);
+create index on subscription.providers (subscription_id);
+create index on subscription.providers (provider_id);
 
 
 ------ Events ------
 
-create schema event;
+-- create schema event;
 
-create table event.type (
-  id    serial primary key,
-  name  varchar(256) unique not null
-);
+-- create table event.type (
+--   id    serial primary key,
+--   name  varchar(256) unique not null
+-- );
 
-create type event.subject_type as enum ('subscription', 'locations');
+-- create type event.subject_type as enum ('feed', 'provider', 'subscription');
 
-create table event.events (
-  id                serial primary key,
-  ts                timestamp with time zone not null default now(),
-  event_type_id     integer references event.type,
-  subject_type      event.subject_type not null,
-  subscription_id   integer references subscription.subscriptions null,
-  note              text
-);
+-- create table event.events (
+--   id                serial primary key,
+--   ts                timestamp with time zone not null default now(),
+--   event_type_id     integer references event.type,
+--   subject_type      event.subject_type not null,
+--   feed_id           integer references feed.feeds null,
+--   subscription_id   integer references subscription.subscriptions null,
+--   note              text
+-- );
 
-create table event.events_locations (
-  event_id     integer references event.events,
-  location_id  integer references location.locations not null,
+-- -- We need one of these for any many-to-many relationship between events and anything else, right?
+-- create table event.events_providers (
+--   event_id     integer references event.events,
+--   provider_id  integer references provider.providers not null,
 
-  primary key (event_id, location_id)
-);
+--   primary key (event_id, provider_id)
+-- );
 
--- TODO: should we have a similar index with the col order swapped?
-create index on event.events (ts, event_type_id);
-
-create index on event.events (subscription_id);
+-- -- TODO: should we have a similar index with the col order swapped?
+-- create index on event.events (ts);
+-- create index on event.events (event_type_id);
+-- create index on event.events (subscription_id);
 
 COMMIT TRANSACTION;

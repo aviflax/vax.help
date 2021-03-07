@@ -1,10 +1,11 @@
 (ns vax.help.web.server
   (:require [clojure.string :as str]
-            [vax.help.i8n :as i8n]
-            [vax.help.subscription.nonce :as nonce]
+            [com.brunobonacci.mulog :as μ]
             [hiccup.core :as hiccup]
             [next.jdbc :as jdbc]
-            [org.httpkit.server :as srv])
+            [org.httpkit.server :as srv]
+            [vax.help.i8n :as i8n]
+            [vax.help.subscription.nonce :as nonce])
   (:import [java.net URLDecoder]))
 
 (defn logger
@@ -65,7 +66,7 @@
                                                 :port     (cv :db :port)}))))))))
 
 ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
-(def locations (atom nil))
+(def providers (atom nil))
 
 (def supported-languages
   {:en "English"
@@ -88,7 +89,7 @@
           
           h1#warning { color: red; }
 
-          #locations {
+          #providers {
             display: grid;
             grid-template-columns: 1.25em 1fr;
             gap: 1em 0;
@@ -117,20 +118,20 @@
         [:form {:method :POST
                 :action (str "/subscribe" (when (not= lang :en)
                                             (str "?lang=" (name lang))))}
-        [:h3 (t "Check the locations about which you’d like to be notified")]
-        [:p "** " (t "Indicates locations for which eligibility is restricted by residency")]
+        [:h3 (t "Check the providers about which you’d like to be notified")]
+        [:p "** " (t "Indicates providers for which eligibility is restricted by residency")]
         
-        [:div#locations
+        [:div#providers
          (mapcat identity
-          (for [{:keys [:with_current_name/id :with_current_name/name :with_current_name/address]} @locations
-                :let [elem-id (str "location-" id)]]
-            [[:input {:type :checkbox, :name :locations, :value id, :id elem-id}]
+          (for [{:keys [:with_current_name/id :with_current_name/name :with_current_name/initial_address]} @providers
+                :let [elem-id (str "provider-" id)]]
+            [[:input {:type :checkbox, :name :providers, :value id, :id elem-id}]
               [:label {:for elem-id}
-              [:span.locationName name]
-              [:span.address address]]]))]
+              [:span.providerName name]
+              [:span.address initial_address]]]))]
          
         [:label
-          [:h3 (t "Enter the email address at which you’d like to be notified when the checked locations have new availability")]
+          [:h3 (t "Enter the email address at which you’d like to be notified when the checked providers have new availability")]
           [:input {:type :email, :name :email, :required :required, :title "email address (required)"}]]
         
         [:h3 (t "Click/tap the button below to create your subscription")]
@@ -194,17 +195,17 @@
 
 (defn validate-subscribe-request
   "Returns an error response as a Ring response map, or nil."
-  [{locations "locations", email "email" :as _posted-form}]
-  (when (or (not (seq locations))
+  [{providers "providers", email "email" :as _posted-form}]
+  (when (or (not (seq providers))
             (str/blank? email)) ; TODO: make this more robust. Maybe with a good old regex!
     {:status  400
      :headers {"Content-Type" "text/plain"}
      :body    (str "400 Bad Request"
-                   "\n\nDid you check at least one location?"
+                   "\n\nDid you check at least one provider?"
                    "\n\nPlease go back and try again.")}))
 
 (defn save-subscription
-  [{email "email", locations "locations" :as _posted-form} lang]
+  [{email "email", providers "providers" :as _posted-form} lang]
   (jdbc/with-transaction [tx @dbconn]
     (let [{id :subscriptions/id}
           (jdbc/execute-one! tx ["insert into subscription.subscriptions (email, language, nonce)
@@ -214,10 +215,10 @@
       (jdbc/execute! tx ["insert into subscription.state_changes (subscription_id, state)
                           values (?, cast(? as subscription.state))"
                          id "new"])
-      (doseq [loc-id (if (coll? locations) ; if only one box is checked the value will be a scalar
-                       locations
-                       [locations])]
-        (jdbc/execute! tx ["insert into subscription.locations (subscription_id, location_id)
+      (doseq [loc-id (if (coll? providers) ; if only one box is checked the value will be a scalar
+                       providers
+                       [providers])]
+        (jdbc/execute! tx ["insert into subscription.providers (subscription_id, provider_id)
                             values (?, ?)"
                            id (Integer/parseInt loc-id)]))))
   {:status  303
@@ -253,7 +254,7 @@
         [:header
           [:h1 title]]
         [:h2 (t "Subscription Request Received")]
-        [:p (t "We have received your request to subscribe to appointment availability changes for the selected locations.")]
+        [:p (t "We have received your request to subscribe to appointment availability changes for the selected providers.")]
         [:p (t "If all goes well, you will receive a confirmation via email shortly.")]
         [:p (t "Once you click the link in that email, you’ll be subscribed.")]
         [:p [:b (t "Good luck!")]]]])))
@@ -307,14 +308,18 @@
 (def port 8080)
 
 (defn start
-  [_args]
+  [& _args]
   (info "Connecting to the database...")
   (ensure-dbconn)
 
-  ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
-  (reset! locations (jdbc/execute! @dbconn ["select id, name, address from location.with_current_name order by name"]))
+  ;; Loading the copy here/now to trigger it being loaded from disk and read in case there’s a
+  ;; syntax error in the EDN in which case we’ll get a CompilerException. This makes *some* sense, I think 😬.
+  (μ/log ::loaded-copy :count (count @i8n/copy))
 
-  (debug "locations:" @locations)
+  ;; TODO: change this to a proper cache that will invalidate and refresh after e.g. an hour
+  (reset! providers (jdbc/execute! @dbconn ["select id, name, initial_address from provider.with_current_name order by name"]))
+
+  (debug "providers:" @providers)
 
   (info "Starting HTTP server listening on port" port)
   (srv/run-server app {:port port}))

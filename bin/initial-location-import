@@ -1,1 +1,0 @@
-clojure -X vax.help.scripts.import-initial-locations/run

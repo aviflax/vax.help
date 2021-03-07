@@ -1,14 +1,14 @@
 {"New York State COVID-19 Vaccine Appointment Availability Notifications"
  {:es "Notificaciones de disponibilidad de citas de vacunas COVID-19 del estado de Nueva York"}
 
- "Check the locations about which you’d like to be notified"
- {:es "Comprueba las ubicaciones sobre las que te gustaría recibir notificaciones."}
+ "Check the providers about which you’d like to be notified"
+ {:es "Seleccione los proveedores sobre los que le gustaría recibir notificaciones"}
 
- "Indicates locations for which eligibility is restricted by residency"
- {:es "Indica lugares para los que la elegibilidad está restringida por residencia"}
+ "Indicates providers for which eligibility is restricted by residency"
+ {:es "Indica proveedores para los que la elegibilidad está restringida por residencia"}
 
- "Enter the email address at which you’d like to be notified when the checked locations have new availability"
- {:es "Ingrese la dirección de correo electrónico en la que desea recibir una notificación cuando las ubicaciones marcadas tengan nueva disponibilidad"}
+ "Enter the email address at which you’d like to be notified when the checked providers have new availability"
+ {:es "Ingrese la dirección de correo electrónico en la que desea recibir una notificación cuando los proveedores seleccionados tengan una nueva disponibilidad"}
 
  "This service is operated by"
  {:es "Este servicio es operado por"}
@@ -25,8 +25,8 @@
  "Subscription Request Received"
  {:es "Solicitud de suscripción recibida"}
 
- "We have received your request to subscribe to appointment availability changes for the selected locations."
- {:es "Hemos recibido su solicitud para suscribirse a los cambios de disponibilidad de citas para las ubicaciones seleccionadas."}
+ "We have received your request to subscribe to appointment availability changes for the selected providers."
+ {:es "Hemos recibido su solicitud para suscribirnos a los cambios de disponibilidad de citas para los proveedores seleccionados."}
 
  "If all goes well, you will receive a confirmation via email shortly."
  {:es "Si todo va bien, recibirá una confirmación por correo electrónico en breve."}
