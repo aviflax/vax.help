@@ -4,7 +4,7 @@
 
 (defn start
   [_args]
-  (μ/start-publisher! {:type :console})
+  (μ/start-publisher! {:type :console-json})
   
   (μ/log ::start :description "Starting background thread for sending email notifications for new subscriptions...")
   (.join (Thread. (verifications/start))))
