@@ -1,14 +1,11 @@
 (ns vax.help.web.server
-  (:require [cheshire.core :as json]
-            [clojure.java.io :as io]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [vax.help.i8n :as i8n]
             [vax.help.subscription.nonce :as nonce]
             [hiccup.core :as hiccup]
             [next.jdbc :as jdbc]
-            [next.jdbc.sql :as sql]
             [org.httpkit.server :as srv])
-  (:import [java.net URLEncoder URLDecoder]))
+  (:import [java.net URLDecoder]))
 
 (defn logger
   [level]
@@ -54,12 +51,12 @@
   []  
   (try
     (jdbc/execute! @dbconn "select version()")
-    (catch Exception e
+    (catch Exception _e
       (swap! dbconn (fn [cur-conn]
                       (try
                         (jdbc/execute! cur-conn ["select version()"])
                         cur-conn
-                        (catch Exception e
+                        (catch Exception _e
                           (jdbc/get-connection {:dbtype   "postgresql"
                                                 :host     (cv :db :host)
                                                 :dbname   (cv :db :name)
@@ -190,7 +187,7 @@
 
 (defn validate-subscribe-request
   "Returns an error response as a Ring response map, or nil."
-  [{locations "locations", email "email" :as posted-form}]
+  [{locations "locations", email "email" :as _posted-form}]
   (when (or (not (seq locations))
             (str/blank? email)) ; TODO: make this more robust. Maybe with a good old regex!
     {:status  400
@@ -223,7 +220,7 @@
 (defn subscribe
   [req lang]
   (try
-    (let [{locations "locations", email "email" :as posted-form} (form-decode (slurp (:body req)))]
+    (let [posted-form (form-decode (slurp (:body req)))]
       (debug "decoded form:" posted-form)
       (or (validate-subscribe-request posted-form)
           (save-subscription posted-form lang)))

@@ -1,6 +1,5 @@
 (ns vax.help.scripts.import-initial-locations
   (:require [next.jdbc :as jdbc]
-            [next.jdbc.sql :as sql]
             [cheshire.core :as json]
             [clojure.string :as str]))
 
