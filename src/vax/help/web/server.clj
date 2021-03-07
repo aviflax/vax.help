@@ -96,7 +96,10 @@
                     
           .address { display: block; font-style: italic; }
           
-          footer { margin-top: 10em; }"]]
+          footer {
+            margin-top: 10em;
+            font-size: smaller;
+          }"]]
       [:body
         [:header
           [:h1 title]]
@@ -136,9 +139,9 @@
          
         [:footer
          [:p
-          (t "Site created by")
+          (t "This service is operated by")
           " "
-          [:a {:href "mailto:avi@aviflax.com"} "Avi Flax"]
+          [:a {:href "mailto:team@vax.help"} "Team vax.help"]
           " "
           (t "with data from")
           " "

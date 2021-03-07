@@ -10,8 +10,8 @@
  "Enter the email address at which you’d like to be notified when the checked locations have new availability"
  {:es "Ingrese la dirección de correo electrónico en la que desea recibir una notificación cuando las ubicaciones marcadas tengan nueva disponibilidad"}
 
- "Site created by"
- {:es "Sitio creado por"}
+ "This service is operated by"
+ {:es "Este servicio es operado por"}
 
  "with data from"
  {:es "con datos de"}
