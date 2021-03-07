@@ -86,6 +86,8 @@
         [:style
          "html, body, select, option, input { font-family: Charter, Palatino; font-size: large; }
           
+          h1#warning { color: red; }
+
           #locations {
             display: grid;
             grid-template-columns: 1.25em 1fr;
@@ -99,6 +101,8 @@
         [:header
           [:h1 title]]
        
+        [:h1#warning "Not yet working! Please come back in a day or two."]
+
         [:form {:method :GET, :action "/"}
          [:select
           {:name :lang, :onchange "this.form.submit()"}
