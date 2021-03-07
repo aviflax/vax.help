@@ -1,0 +1,1 @@
+psql -h $DB_HOST -U $DB_USERNAME -f db/init.sql $DB_NAME
