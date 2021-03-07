@@ -4,6 +4,7 @@
             [hiccup.core :as hiccup]
             [next.jdbc :as jdbc]
             [org.httpkit.server :as srv]
+            [vax.help.config :refer [env!]]
             [vax.help.i8n :as i8n]
             [vax.help.subscription.nonce :as nonce])
   (:import [java.net URLDecoder]))
@@ -16,15 +17,6 @@
 (def info  (logger "INFO"))
 (def warn  (logger "WARN"))
 (def error (logger "ERROR"))
-
-(defn env!
-  "Throws if the environment variable is missing or blank."
-  [vn]
-  (let [vv (System/getenv vn)]
-    (if (or (not vv)
-            (str/blank? vv))
-      (throw (RuntimeException. (format "Required environment variable %s not found." vn)))
-      vv)))
 
 (defn build-config!
   "Throws if a required environment variable is missing or blank."

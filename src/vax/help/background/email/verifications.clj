@@ -1,32 +1,13 @@
 (ns vax.help.background.email.verifications
   (:require [clojure.string :as str]
             [com.brunobonacci.mulog :as μ]
+            [vax.help.config :refer [env env! ss->ms]]
             [vax.help.i8n :as i8n]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
             [next.jdbc.sql :as sql])
   (:import [com.wildbit.java.postmark Postmark]
            [com.wildbit.java.postmark.client.data.model.message Message]))
-
-(defn env!
-  "Throws if the environment variable is missing or blank."
-  [vn]
-  (let [vv (System/getenv vn)]
-    (if (or (not vv)
-            (str/blank? vv))
-      (throw (RuntimeException. (format "Required environment variable %s not found." vn)))
-      vv)))
-
-(defn env
-  [vn default]
-  (or (System/getenv vn) default))
-
-(defn- ss->ms
-  "Convert a string containing a number of seconds to an integer equivalent in milliseconds"
-  [v]
-  (-> v
-      (Integer/parseInt)
-      (* 1000)))
 
 (defn build-config!
   "Throws if a required environment variable is missing or blank."
