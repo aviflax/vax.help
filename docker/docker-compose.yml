@@ -4,9 +4,9 @@ services:
     image: 'postgres:13.2-alpine'
     restart: always
     environment:
-      POSTGRES_DB: vax_help
-      POSTGRES_USER: vax_help
-      POSTGRES_PASSWORD: 'F00B4r!'
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports: ['5432:5432']
   db_wait:
     image: dadarek/wait-for-dependencies
@@ -20,9 +20,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: '5432'
-      DB_NAME: vax_help
-      DB_USERNAME: vax_help
-      DB_PASSWORD: 'F00B4r!'
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports: ['8080:8080']
   background:
     build:
@@ -31,10 +31,10 @@ services:
     depends_on: [db_wait]
     environment:
       DB_HOST: db
-      DB_PORT: '5432'
-      DB_NAME: vax_help
-      DB_USERNAME: vax_help
-      DB_PASSWORD: 'F00B4r!'
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       FETCH_LIMIT: 100
       POSTMARK_SERVER_TOKEN: '${POSTMARK_SERVER_TOKEN}'
       EXTERNAL_BASE_URL: 'http://localhost:8080'
