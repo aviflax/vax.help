@@ -1,3 +1,5 @@
 #!/bin/sh
 
+set -eu
+
 clojure -X vax.help.web.server/start

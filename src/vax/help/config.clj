@@ -20,3 +20,14 @@
   (-> v
       (Integer/parseInt)
       (* 1000)))
+
+(defn ensure-trailing-slash
+  [v]
+  (if-not (str/ends-with? v "/")  ; I normally prefer `if` over `if-not` but it’s just so much easier to append a char than remove one.
+    (str v "/")
+    v))
+
+(defn get-getter
+  [config]
+  (fn [first-key & more-keys]
+    (get-in config (cons first-key more-keys))))

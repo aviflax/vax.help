@@ -79,8 +79,6 @@
         [:style
          "html, body, select, option, input { font-family: Charter, Palatino; font-size: large; }
           
-          h1#warning { color: red; }
-
           #providers {
             display: grid;
             grid-template-columns: 1.25em 1fr;
@@ -96,8 +94,6 @@
       [:body
         [:header
           [:h1 title]]
-       
-        [:h1#warning "Not yet working! Please come back in a day or two."]
 
         [:form {:method :GET, :action "/"}
          [:select
@@ -207,12 +203,12 @@
       (jdbc/execute! tx ["insert into subscription.state_changes (subscription_id, state)
                           values (?, cast(? as subscription.state))"
                          id "new"])
-      (doseq [loc-id (if (coll? providers) ; if only one box is checked the value will be a scalar
-                       providers
-                       [providers])]
-        (jdbc/execute! tx ["insert into subscription.providers (subscription_id, provider_id)
+      (doseq [provider-id (if (coll? providers) ; if only one box is checked the value will be a scalar
+                            providers
+                            [providers])]
+        (jdbc/execute! tx ["insert into subscription.subscriptions_providers (subscription_id, provider_id)
                             values (?, ?)"
-                           id (Integer/parseInt loc-id)]))))
+                           id provider-id]))))
   {:status  303
    :headers {"Location" (str "/received" (when (not= lang :en)
                                            (str "?lang=" (name lang))))}})
@@ -241,6 +237,7 @@
     [:html
       [:head
         [:meta {:charset "UTF-8"}]
+        [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
         [:title title]]
       [:body
         [:header

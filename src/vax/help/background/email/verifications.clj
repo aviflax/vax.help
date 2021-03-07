@@ -1,7 +1,6 @@
 (ns vax.help.background.email.verifications
-  (:require [clojure.string :as str]
-            [com.brunobonacci.mulog :as μ]
-            [vax.help.config :refer [env env! ss->ms]]
+  (:require [com.brunobonacci.mulog :as μ]
+            [vax.help.config :as c :refer [env env! ss->ms]]
             [vax.help.i8n :as i8n]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
@@ -12,10 +11,7 @@
 (defn build-config!
   "Throws if a required environment variable is missing or blank."
   []
-  {:baseurl     (let [v (env! "EXTERNAL_BASE_URL")]
-                  (if (str/ends-with? v "/")
-                    (subs v 0 (dec (count v)))
-                    v))
+  {:baseurl     (c/ensure-trailing-slash (env! "EXTERNAL_BASE_URL"))
    :db          {:dbtype       "postgresql"
                  :host         (env! "DB_HOST")
                  :port         (env! "DB_PORT")
@@ -25,13 +21,8 @@
                  ::comment     "This is (and must be) a valid next.jdbc dbspec."}
    :fetch-limit (Integer/parseInt (env! "FETCH_LIMIT"))
    :postmark    {:server-token (env! "POSTMARK_SERVER_TOKEN")}
-   :sleep-ms      (ss->ms (env! "SLEEP_SECS"))  ; how long to pause between each "batch" i.e. query
-   :err-sleep-ms  (ss->ms (env "ERR_SLEEP_SECS" "1"))})  ; how long to pause after an error
-
-(defn config-val-getter
-  [config]
-  (fn [first-key & more-keys]
-    (get-in config (cons first-key more-keys))))
+   :sleep-ms      (ss->ms (env! "SUB_VERIFICATION_FREQUENCY_SECS"))  ; how long to pause between each "batch" i.e. query
+   :err-sleep-ms  (ss->ms (env "SUB_VERIFICATION_ERR_SLEEP_SECS" "1"))})  ; how long to pause after an error
 
 (defn- new-subs
   "Get subscriptions for which we have not yet sent verification emails."
@@ -115,7 +106,7 @@
 (defn start
   [& _args]
   (let [config     (build-config!)
-        cv         (config-val-getter config)
+        cv         (c/get-getter config)
         pm-client  (Postmark/getApiClient (cv :postmark :server-token))
         dbconn     (jdbc/get-connection (cv :db))]
     (μ/log ::db-conn :connection :successful)

@@ -1,1 +1,5 @@
+#!/bin/sh
+
+set -eu
+
 clojure -X vax.help.scripts.import-initial-providers/run
