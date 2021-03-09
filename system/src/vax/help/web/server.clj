@@ -277,13 +277,15 @@
       (cond
         (not nonce)                         {:status 400, :body "Bad request"}
         (not sub)                           {:status 404, :body "Not found"}
-        (= state "active")                  {:status 200, :body (t "Subscription verified")}
+        (= state "active")                  {:status 200, :body (t "Subscription verified"), :headers {"Content-Type" "text/plain; charset=UTF-8"}}
         (= state "canceled")                {:status 400, :body "Bad request: subscription was already canceled"}
         (not= state "pending-verification") {:status 400, :body "Bad request: subscription not pending verification"}
 
         :else
         (do (subscription/store-stage-change id "active" @dbconn)
-            {:status 200, :body (t "Subscription verified")})))
+            {:status  200
+             :headers {"Content-Type" "text/plain; charset=UTF-8"}
+             :body    (t "Subscription verified")})))
   (catch Exception e
     (μ/log ::sub-verification-req-err :exception e)
     {:status 500, :body "Internal server error"})))
@@ -294,7 +296,8 @@
     {:status 405, :body "Method not allowed"}
     (let [lang (which-lang req)]
       {:status  200
-       :headers {"Content-Type" "text/html; charset=UTF-8", "Content-Language" lang}
+       :headers {"Content-Type"     "text/html; charset=UTF-8"
+                 "Content-Language" lang}
        :body    (page-fn lang req)})))
 
 (defn handle-post
@@ -303,7 +306,7 @@
     {:status 405, :body "Method not allowed"}
     (let [lang (which-lang req)
           response (handler-fn req lang)]
-      (assoc-in response "Content-Language" lang))))
+      (assoc-in response [:headers "Content-Language"] lang))))
 
 (defn handle-not-found
   [req log?]
