@@ -32,7 +32,7 @@
               from provider.providers p
                 join subscription.subscriptions_providers sp on p.id = sp.provider_id
                    and sp.subscription_id = s.id) as provider_ids
-      from subscription.subscriptions s
+      from subscription.with_current_state s
       where s.state = 'active'::subscription.state
         and s.id in (select subscription_id
                      from subscription.subscriptions_providers
