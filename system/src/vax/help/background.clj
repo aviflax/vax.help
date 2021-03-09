@@ -23,9 +23,11 @@
   (try 
     (let [threads (map #(Thread. %) (vals jobs))]
       (run! #(.start %) threads)
-      (run! #(.join %) threads))
-    (throw (RuntimeException. "All threads seem to have exited. That’s not supposed to happen!"))
-    
+      
+      (while true
+        (when-let [thread (some #(not (.isAlive %)) threads)]
+          (throw (ex-info "A background thread seems to have exited. That’s not supposed to happen!" {:dead-thread thread})))
+        (Thread/sleep 1000)))    
     (catch Exception e
       ;; If an exception bubbled up to this level, then one of our threads has died. We don’t
       ;; currently have the sophistication to do anything smarter than log the error and kill the

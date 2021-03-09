@@ -131,7 +131,11 @@
         cv         (c/get-getter config)
         sleep-ms   (cv :sleep-ms)]
     (while true
-      (check-for-updates cv)
+      (try
+        (check-for-updates cv)
+        (catch Exception e
+          (μ/log ::error, :ex-class (.getSimpleName (class e)), :ex-msg (.getMessage e), :ex-data (ex-data e))
+          (Thread/sleep (cv :err-sleep-ms))))
       (Thread/sleep sleep-ms))))
 
 (comment

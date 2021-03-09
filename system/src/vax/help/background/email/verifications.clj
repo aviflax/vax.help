@@ -60,12 +60,8 @@
     (Message. sender recipient subject html-body text-body)))
 
 (defn send-verification-email
-  "Returns nil upon success, otherwise a map representing an anomaly.
-   TODO: return a proper ::anom/anomaly
-   
-   Might throw if e.g. something goes really bad. (I’m not entirely sure; I’d need to read more of
-   the source of the Postmark Java client lib (which is at https://github.com/wildbit/postmark-java
-   ). This is one of the problems with using a wrapper.)"
+  "Returns nil upon success, otherwise throws. (Behavior inherited from Postmark lib.)
+   TODO: return an ::anom/anomaly instead of throwing."
   [{:keys [id nonce] :as sub} pm-client cv]
   (try
     (let [msg           (sub->email sub (cv :baseurl))
@@ -111,10 +107,14 @@
         dbconn     (jdbc/get-connection (cv :db))]
     (μ/log ::db-conn :connection :successful)
     (while true
-      (when-let [new-subs (seq (new-subs dbconn cv))]
-        (μ/log ::new-subs-found :count (count new-subs))
-        (doseq [sub new-subs]
-          (if-let [_send-error (send-verification-email sub pm-client cv)]
-            (Thread/sleep (cv :err-sleep-ms))
-            (transition-sub-state sub dbconn)))))
-      (Thread/sleep (cv :sleep-ms))))
+      (try
+        (when-let [new-subs (seq (new-subs dbconn cv))]
+          (μ/log ::new-subs-found :count (count new-subs))
+          (doseq [sub new-subs]
+            (if-let [_send-error (send-verification-email sub pm-client cv)]
+              (Thread/sleep (cv :err-sleep-ms))
+              (transition-sub-state sub dbconn))))
+        (catch Exception e
+          (μ/log ::error, :ex-class (.getSimpleName (class e)), :ex-msg (.getMessage e), :ex-data (ex-data e))
+          (Thread/sleep (cv :err-sleep-ms))))
+      (Thread/sleep (cv :sleep-ms)))))
