@@ -320,12 +320,17 @@
    "/subscription/verification" subscription-verification
    "/favicon.ico"               (fn [req] (handle-not-found req false))})
 
+(def do-not-log
+  #{"/healthz" "/favicon.ico"})
+
 (defn app [req]
-  (let [res (if-let [handler (get routes (:uri req))]
-              (handler req)
-              (handle-not-found req true))]
+  (let [uri  (:uri req)
+        res  (if-let [handler (get routes uri)]
+               (handler req)
+               (handle-not-found req true))]
     ;; TODO: this is SUPER primitive!
-    (μ/log ::request :request (dissoc req :body), :response (dissoc res :body))
+    (when-not (do-not-log uri)
+      (μ/log ::request :request (dissoc req :body), :response (dissoc res :body)))
     res))
 
 (def port 8080)
