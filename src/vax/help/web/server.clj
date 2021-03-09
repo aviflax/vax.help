@@ -6,7 +6,8 @@
             [org.httpkit.server :as srv]
             [vax.help.config :refer [env!]]
             [vax.help.i8n :as i8n]
-            [vax.help.subscription.nonce :as nonce])
+            [vax.help.subscription.nonce :as nonce]
+            [vax.help.subscription :as subscription])
   (:import [java.net URLDecoder]))
 
 (defn logger
@@ -65,7 +66,7 @@
    :es "Español"})
 
 (defn home-page
-  [lang]
+  [lang & _etc]
   ;; TODO: add client-side form validation, once we’ve tested server-side validation
   (let [t     (i8n/translator lang)
         title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
@@ -229,7 +230,7 @@
                      "\n\nIf you continue to see this message, please email me: avi@aviflax.com.")})))
 
 (defn received-page
-  [lang]
+  [lang & _etc]
   (let [t     (i8n/translator lang)
         title (t "New York State COVID-19 Vaccine Appointment Availability Notifications")]
     (hiccup/html
@@ -259,6 +260,34 @@
       :es
       :en)))
 
+;; TODO: needs way more error handling. e.g. what if nonce is not provided in query string
+(defn subscription-verification
+  [req]
+  (try
+    (let [t      (i8n/translator (which-lang req))
+          nonce  (->> (get req :query-string "")
+                      (re-find #"nonce=([a-zA-Z0-9-]+)")
+                      (second))
+
+          {:keys [id state]
+           :as sub}          (if nonce
+                               (subscription/get-by-nonce nonce @dbconn)
+                               {})]
+      (μ/log ::sub-verification-data-retrieved :nonce nonce, :sub sub)
+      (cond
+        (not nonce)                         {:status 400, :body "Bad request"}
+        (not sub)                           {:status 404, :body "Not found"}
+        (= state "active")                  {:status 200, :body (t "Subscription verified")}
+        (= state "canceled")                {:status 400, :body "Bad request: subscription was already canceled"}
+        (not= state "pending-verification") {:status 400, :body "Bad request: subscription not pending verification"}
+
+        :else
+        (do (subscription/store-stage-change id "active" @dbconn)
+            {:status 200, :body (t "Subscription verified")})))
+  (catch Exception e
+    (μ/log ::sub-verification-req-err :exception e)
+    {:status 500, :body "Internal server error"})))
+
 (defn handle-get
   [req page-fn]
   (if (not= (:request-method req) :get)
@@ -266,7 +295,7 @@
     (let [lang (which-lang req)]
       {:status  200
        :headers {"Content-Type" "text/html; charset=UTF-8", "Content-Language" lang}
-       :body    (page-fn lang)})))
+       :body    (page-fn lang req)})))
 
 (defn handle-post
   [req handler-fn]
@@ -283,21 +312,28 @@
   {:status 404, :body "Not Found"})
 
 (def routes
-  {"/"            (fn [req] (handle-get req (memoize home-page)))
-   "/healthz"     (constantly {:status 200, :body "OK"})
-   "/subscribe"   (fn [req] (handle-post req subscribe))
-   "/received"    (fn [req] (handle-get req (memoize received-page)))
-   "/favicon.ico" (fn [req] (handle-not-found req false))})
+  {"/"                          (fn [req] (handle-get req (memoize home-page)))
+   "/healthz"                   (constantly {:status 200
+                                             :body   "OK"})
+   "/subscribe"                 (fn [req] (handle-post req subscribe))
+   "/received"                  (fn [req] (handle-get req (memoize received-page)))
+   "/subscription/verification" subscription-verification
+   "/favicon.ico"               (fn [req] (handle-not-found req false))})
 
 (defn app [req]
-  (if-let [handler (get routes (:uri req))]
-    (handler req)
-    (handle-not-found req true)))
+  (let [res (if-let [handler (get routes (:uri req))]
+              (handler req)
+              (handle-not-found req true))]
+    ;; TODO: this is SUPER primitive!
+    (μ/log ::request :request (dissoc req :body), :response (dissoc res :body))
+    res))
 
 (def port 8080)
 
 (defn start
   [& _args]
+  (μ/start-publisher! {:type :console-json})
+
   (info "Connecting to the database...")
   (ensure-dbconn)
 

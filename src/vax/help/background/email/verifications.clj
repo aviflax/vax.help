@@ -38,8 +38,8 @@
 
 (defn verification-url
   [lang nonce base-url]
-  (str base-url "/subscription-verification/" nonce (when (not= lang "en")
-                                                      (str "?lang=" (name lang)))))
+  (str base-url "subscription/verification?nonce=" nonce (when (not= lang "en")
+                                                           (str "&lang=" (name lang)))))
 
 (defn- body
   [t lang nonce base-url]

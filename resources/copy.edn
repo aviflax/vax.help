@@ -54,4 +54,7 @@
 
  "These providers now do NOT have appointments available:"
  {:es "Estos proveedores ahora NO tienen citas disponibles:"}
+
+ "Subscription verified"
+ {:es "Suscripción verificada"}
 }

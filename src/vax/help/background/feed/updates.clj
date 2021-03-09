@@ -70,7 +70,7 @@
 (defn send-emails
   [providers-from-update dbconn pm-client]
   (let [feed-provider-ids          (set (map :db-id providers-from-update))
-        relevant-subscriptions     (subscription/get-for-providers feed-provider-ids dbconn)
+        relevant-subscriptions     (subscription/get-active-for-providers feed-provider-ids dbconn)
         providers-by-availability  (group-by ny/appointments-available? providers-from-update)]
     (doseq [sub relevant-subscriptions
             :let [msg  (sub->email sub providers-by-availability)]]
