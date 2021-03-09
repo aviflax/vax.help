@@ -44,7 +44,7 @@
 (defn- body
   [t lang nonce base-url]
   (format
-   (str (t "To verify your subscription to COVID-19 vaccine appointment availability notifications, please open this link:")
+   (str (t "To verify your subscription to COVID-19 vaccination appointment updates, please open this link:")
         "\n\n%s\n\n"
         (t "If you did not request such notifications, you may ignore this email."))
    (verification-url lang nonce base-url)))
@@ -54,7 +54,7 @@
   (let [t           (i8n/translator lang)
         sender      "updates@vax.help"
         recipient   email
-        subject     (t "Confirm your subscription to COVID-19 vaccine appointment availability notifications")
+        subject     (t "Confirm your subscription to COVID-19 vaccination appointment updates")
         html-body   nil
         text-body   (body t lang nonce baseurl)]
     (Message. sender recipient subject html-body text-body)))
