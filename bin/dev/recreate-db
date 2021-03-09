@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -eu
+
+dropdb -h $DB_HOST -U $DB_USERNAME $DB_NAME
+createdb -h $DB_HOST -U $DB_USERNAME $DB_NAME
+psql -h $DB_HOST -U $DB_USERNAME $DB_NAME -f db/init.sql

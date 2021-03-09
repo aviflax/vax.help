@@ -37,12 +37,21 @@
  "Good luck!"
  {:es "¡Buena suerte!"}
  
- "Confirm your subscription to COVID-19 vaccine appointment availability notifications"
- {:es "Confirme su suscripción a las notificaciones de disponibilidad de citas para la vacuna COVID-19"}
+ "Confirm your subscription to COVID-19 vaccination appointment updates"
+ {:es "Confirme su suscripción a las actualizaciones de las citas de vacunación COVID-19"}
 
- "To verify your subscription to COVID-19 vaccine appointment availability notifications, please open this link:"
- {:es "Para verificar su suscripción a las notificaciones de disponibilidad de citas para la vacuna COVID-19, abra este enlace:"}
+ "To verify your subscription to COVID-19 vaccination appointment updates, please open this link:"
+ {:es "Para verificar su suscripción a las actualizaciones de las citas de vacunación COVID-19, abra este enlace:"}
  
  "If you did not request such notifications, you may ignore this email."
- {:es "Si no solicitó dichas notificaciones, puede ignorar este correo electrónico."}
+ {:es "Si no solicitó dichas actualizaciones, puede ignorar este correo electrónico."}
+
+ "COVID-19 vaccination appointment updates"
+ {:es "Actualizaciones de citas de vacunación COVID-19"}
+
+ "These providers now DO have appointments available:"
+ {:es "Estos proveedores ahora TIENEN citas disponibles:"}
+
+ "These providers now do NOT have appointments available:"
+ {:es "Estos proveedores ahora NO tienen citas disponibles:"}
 }

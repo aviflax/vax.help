@@ -1,7 +1,10 @@
 (ns vax.help.scripts.import-initial-providers
-  (:require [next.jdbc :as jdbc]
-            [cheshire.core :as json]
-            [clojure.string :as str]))
+  (:require [cheshire.core :as json]
+            [clojure.string :as str]
+            [next.jdbc :as jdbc]
+            [vax.help.feed :as feed]
+            [vax.help.feed.ny :as ny]
+            [vax.help.provider :as provider]))
 
 (defn env!
   "Throws if a the environment variable is missing or blank."
@@ -36,23 +39,18 @@
    :password (cv :db :password)
    :port     (cv :db :port)})
 
-(def data-url "https://am-i-eligible.covid19vaccine.health.ny.gov/api/list-providers")
-
 (defn run
   [_args]
-  (let [data   (slurp data-url)
-        parsed (json/parse-string data true)]
+  (let [{:keys [state-or-territory data-url] feed-id :id, feed-name :name, :as _feed} ny/feed
+        json-str   (slurp "db/initial-providers.json")
+        parsed     (json/parse-string json-str true)]
     (jdbc/with-transaction [tx (db)]
-      (let [{feed-id :feeds/id}
-            (jdbc/execute-one! tx ["insert into feed.feeds (state_or_territory, name, data_url)
-                                    values (cast(? as feed.state_or_territory), ?, ?)"
-                                   "NY" "am-i-eligible.covid19vaccine.health.ny.gov" data-url]
-                                  {:return-keys true})]
-        (doseq [{:keys [providerId providerName address]} (:providerList parsed)]
-          (let [{provider-id :providers/id}
-                (jdbc/execute-one! tx ["insert into provider.providers (feed_id, id_from_feed, initial_name, initial_address)
-                                        values (?, ?, ?, ?)"
-                                       feed-id providerId providerName address]
-                                  {:return-keys true})]
-            (jdbc/execute-one! tx ["insert into provider.names (provider_id, name) values (?, ?)"
-                                   provider-id providerName])))))))
+      (feed/store-new feed-id state-or-territory feed-name data-url tx)
+      (let [feed-update-id (feed/store-update feed-id json-str tx)]
+        (doseq [provider (:providerList parsed)]
+          (provider/store-new feed-id provider tx)
+          (provider/store-state-change provider feed-id feed-update-id tx))))))
+
+(comment 
+  (slurp "providers.json") 
+)
