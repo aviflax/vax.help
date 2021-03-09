@@ -11,7 +11,6 @@ COPY resources ./resources/
 # Copy the code last so hopefully we can use the prior layers as cached
 COPY src ./src/
 
-
 EXPOSE 8080
 
 CMD [ "clojure", "-X", "vax.help.background/start" ]
