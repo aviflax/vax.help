@@ -12,6 +12,8 @@ Access to healthcare shouldn’t be contingent upon income, wealth, or schedule 
 So we’ve launched [ny.vax.help](https://ny.vax/help) to make it easier and fairer for New Yorkers to get vaccination appointments.
 Sign up at [ny.vax.help](https://ny.vax/help) and the website will send you an email as soon as your selected providers have availability.
 
+And if you think this might help other New Yorkers, please spread the word!
+
 
 ## Launch Tweet
 
