@@ -28,10 +28,18 @@
    :sleep-ms      (ss->ms (env! "FEED_UPDATE_FREQUENCY_SECS"))  ; how many seconds between updates
    :err-sleep-ms  (ss->ms (env "FEED_UPDATE_ERR_SLEEP_SECS" "1"))})  ; how long to pause after an error
 
+(defn unsub-url
+  [cv sub]
+  ;; We’re using the single nonce here effectively as a unique ID for the sub, which is a bad idea,
+  ;; but it’s fast. It’s what we’ve got. I don’t want to use the primary key `id` from the DB
+  ;; because it's a bad idea to expose that to the world. TODO: do something better!
+  (str (cv :baseurl) "subscription/deactivation?nonce=" (:nonce sub)))
+
 (defn body
   [t
    {sub-provider-ids :provider_ids, :as sub}
-   providers-by-availability]
+   providers-by-availability
+   cv]
   (μ/log ::building-email-body :sub sub, :providers-by-availability providers-by-availability)
   (let [subscribed-feed-provider-ids (set sub-provider-ids)
 
@@ -54,26 +62,32 @@
               (str/join "\n" (sort (map :providerName nope)))
               "\n\n"
               "** "
-              (t "Indicates providers for which eligibility is restricted by residency")))))))
+              (t "Indicates providers for which eligibility is restricted by residency")
+              "\n\n"))
+       "\n\n"
+       (t "Open this link to unsubscribe")
+       ": "
+       (unsub-url cv sub)))))
 
 ;; TODO: customize the subject according to whether the updates are good news, bad news, or mixed
 (defn sub->email
-  [{:keys [email lang] :as sub} providers-by-availability]
+  [{:keys [email lang] :as sub} providers-by-availability cv]
   (let [t           (i8n/translator lang)
         sender      "updates@vax.help"
         recipient   email
         subject     (t "COVID-19 vaccination appointment updates")
         html-body   nil
-        text-body   (body t sub providers-by-availability)]
+        text-body   (body t sub providers-by-availability cv)]
     (Message. sender recipient subject html-body text-body)))
 
 (defn send-emails
-  [providers-from-update dbconn pm-client]
-  (let [feed-provider-ids          (set (map :db-id providers-from-update))
+  [providers-from-update dbconn cv]
+  (let [pm-client                  (Postmark/getApiClient (cv :postmark :server-token))
+        feed-provider-ids          (set (map :db-id providers-from-update))
         relevant-subscriptions     (subscription/get-active-for-providers feed-provider-ids dbconn)
         providers-by-availability  (group-by ny/appointments-available? providers-from-update)]
     (doseq [sub relevant-subscriptions
-            :let [msg  (sub->email sub providers-by-availability)]]
+            :let [msg  (sub->email sub providers-by-availability cv)]]
       (μ/log ::sending-email, :subscription/id (:id sub), :email/from (.getFrom msg), :email/to (.getTo msg), :email/subject (.getSubject msg))
       (.deliverMessage pm-client msg))))
 
@@ -122,7 +136,7 @@
         (if @availability-changed?
           (do
             (μ/log ::sending-emails)
-            (send-emails update-provider-states tx (Postmark/getApiClient (cv :postmark :server-token))))
+            (send-emails update-provider-states tx cv))
           (μ/log ::not-sending-emails)))))))
 
 (defn start

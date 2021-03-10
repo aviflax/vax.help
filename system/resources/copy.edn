@@ -57,4 +57,10 @@
 
  "Subscription verified"
  {:es "Suscripción verificada"}
+
+ "Open this link to unsubscribe"
+ {:es "Abra este enlace para darse de baja"}
+
+ "Subscription deactivated"
+ {:es "Suscripción desactivada"}
 }

@@ -290,6 +290,31 @@
     (μ/log ::sub-verification-req-err :exception e)
     {:status 500, :body "Internal server error"})))
 
+(defn subscription-deactivation
+  [req]
+  (try
+    (let [t        (i8n/translator (which-lang req))
+          nonce    (->> (get req :query-string "")
+                        (re-find #"nonce=([a-zA-Z0-9-]+)")
+                        (second))
+          success  {:status  200
+                    :headers {"Content-Type" "text/plain; charset=UTF-8"}
+                    :body    (t "Subscription deactivated")}
+          {:keys [id state]
+           :as sub}          (if nonce
+                               (subscription/get-by-nonce nonce @dbconn)
+                               {})]
+      (μ/log ::sub-verification-data-retrieved :nonce nonce, :sub sub)
+      (cond
+        (not nonce)           {:status 400, :body "Bad request"}
+        (not sub)             {:status 404, :body "Not found"}
+        (= state "canceled")  success
+        :else                 (do (subscription/store-stage-change id "canceled" @dbconn)
+                                  success)))
+    (catch Exception e
+      (μ/log ::sub-verification-req-err :exception e)
+      {:status 500, :body "Internal server error"})))
+
 (defn handle-get
   [req page-fn]
   (if (not= (:request-method req) :get)
@@ -326,6 +351,7 @@
    "/subscribe"                 (fn [req] (handle-post req subscribe))
    "/received"                  (fn [req] (handle-get req (memoize received-page)))
    "/subscription/verification" subscription-verification
+   "/subscription/deactivation" subscription-deactivation
    "/favicon.ico"               (fn [req] (not-found req false))})
 
 (def do-not-log
