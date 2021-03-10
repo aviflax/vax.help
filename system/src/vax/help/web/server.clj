@@ -308,11 +308,16 @@
           response (handler-fn req lang)]
       (assoc-in response [:headers "Content-Language"] lang))))
 
-(defn handle-not-found
+(defn not-found
   [req log?]
   (when log?
     (warn "no handler found for path" (:uri req)))
   {:status 404, :body "Not Found"})
+
+(defn redirect
+  [status loc]
+  {:status  status
+   :headers {"Location" loc}})
 
 (def routes
   {"/"                          (fn [req] (handle-get req (memoize home-page)))
@@ -321,16 +326,24 @@
    "/subscribe"                 (fn [req] (handle-post req subscribe))
    "/received"                  (fn [req] (handle-get req (memoize received-page)))
    "/subscription/verification" subscription-verification
-   "/favicon.ico"               (fn [req] (handle-not-found req false))})
+   "/favicon.ico"               (fn [req] (not-found req false))})
 
 (def do-not-log
   #{"/healthz" "/favicon.ico"})
 
 (defn app [req]
-  (let [uri  (:uri req)
-        res  (if-let [handler (get routes uri)]
-               (handler req)
-               (handle-not-found req true))]
+  (let [uri     (:uri req)
+        handler (get routes uri)
+        res     (cond
+                  (= (get-in req [:headers "server-name"])
+                     "vax.help")
+                  (redirect 307 "https://ny.vax.help/")
+                
+                  handler
+                  (handler req)
+                
+                  :else
+                  (not-found req true))]
     ;; TODO: this is SUPER primitive!
     (when-not (do-not-log uri)
       (μ/log ::request :request (dissoc req :body), :response (dissoc res :body)))
