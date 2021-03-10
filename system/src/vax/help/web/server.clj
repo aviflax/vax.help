@@ -335,8 +335,7 @@
   (let [uri     (:uri req)
         handler (get routes uri)
         res     (cond
-                  (= (get-in req [:headers "server-name"])
-                     "vax.help")
+                  (#{"vax.help" "www.vax.help"} (:server-name req))
                   (redirect 307 "https://ny.vax.help/")
                 
                   handler
