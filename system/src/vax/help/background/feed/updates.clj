@@ -47,6 +47,7 @@
         has   (filter ff (get providers-by-availability true))
         nope  (filter ff (get providers-by-availability false))]
     (when (or (seq has) (seq nope))
+      ;; TODO: this is horrible. Switch to a Selmer template or something similar!
       (str
        (when (seq has)
          (str (t "These providers now DO have appointments available:")
@@ -55,7 +56,13 @@
               "\n\n"
               "** "
               (t "Indicates providers for which eligibility is restricted by residency")
+              "\n\n"
+              (t "Open this link to book an appointment")
+              ": "
+              (:book-url ny/feed)
               "\n\n"))
+       (when (and (seq has) (seq nope))
+          "--------------------\n\n")
        (when (seq nope)
          (str (t "These providers now do NOT have appointments available:")
               "\n\n"

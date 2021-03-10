@@ -63,4 +63,7 @@
 
  "Subscription deactivated"
  {:es "Suscripción desactivada"}
+
+ "Open this link to book an appointment"
+ {:es "Abra este enlace para reservar una cita"}
 }

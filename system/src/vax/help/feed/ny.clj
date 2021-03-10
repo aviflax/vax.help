@@ -30,4 +30,5 @@
   {:id                 "F-NYS-01"
    :state-or-territory "NY"
    :name               "am-i-eligible.covid19vaccine.health.ny.gov"
-   :data-url           "https://am-i-eligible.covid19vaccine.health.ny.gov/api/list-providers"})
+   :data-url           "https://am-i-eligible.covid19vaccine.health.ny.gov/api/list-providers"
+   :book-url           "https://am-i-eligible.covid19vaccine.health.ny.gov/"})

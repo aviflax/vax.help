@@ -24,7 +24,7 @@
   "Get all subscriptions that are subscribed to the specified providers, including, for each
    subscription, an array of all the providers to which that subscription is... subscribed."
   [provider-ids dbconn]
-  (μ/log ::retrieving-subscription :provider-ids provider-ids)
+  (μ/log ::retrieving-active-subscriptions :provider-ids provider-ids)
   (jdbc/execute!
     dbconn
     ["select s.id, s.email, s.language, s.nonce,
