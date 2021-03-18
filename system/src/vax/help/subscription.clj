@@ -27,7 +27,7 @@
   (μ/log ::retrieving-active-subscriptions :provider-ids provider-ids)
   (jdbc/execute!
     dbconn
-    ["select s.id, s.email, s.language, s.nonce,
+    ["select s.id, s.email, s.language as lang, s.nonce,
         array(select p.id
               from provider.providers p
                 join subscription.subscriptions_providers sp on p.id = sp.provider_id
