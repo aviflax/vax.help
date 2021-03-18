@@ -52,7 +52,7 @@
        (when (seq has)
          (str (t "These providers now DO have appointments available:")
               "\n\n"
-              (str/join "\n" (sort (map :providerName has)))
+              (str/join "\n\n" (sort (map :providerName has)))
               "\n\n"
               "** "
               (t "Indicates providers for which eligibility is restricted by residency")
@@ -60,13 +60,13 @@
               (t "Open this link to book an appointment")
               ": "
               (:book-url ny/feed)
-              "\n\n"))
+              "\n\n\n"))
        (when (and (seq has) (seq nope))
-          "--------------------\n\n")
+          "--------------------\n\n\n")
        (when (seq nope)
          (str (t "These providers now do NOT have appointments available:")
               "\n\n"
-              (str/join "\n" (sort (map :providerName nope)))
+              (str/join "\n\n" (sort (map :providerName nope)))
               "\n\n"
               "** "
               (t "Indicates providers for which eligibility is restricted by residency")
