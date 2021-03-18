@@ -23,6 +23,11 @@
   (if (contains? provider :appointments_available)
       (:appointments_available provider)
       (case (:availableAppointments provider)
+        ;; newer values that the NYS feed started using today, 2021-03-17
+        "Y"   true
+        "N"   false
+
+        ;; older values; keeping them around just for a bit just in case.
         "AA"  true
         "NAC" false)))
 
